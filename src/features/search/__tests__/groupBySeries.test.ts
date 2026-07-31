@@ -3,17 +3,18 @@ import { describe, expect, it } from 'vitest'
 import type { BookSearchDocument } from '../api/searchBooks'
 import { groupBySeries } from '../lib/groupBySeries'
 
-import { makeSearchHit } from './mocks/searchHit'
+import searchHit from './mocks/search-hit.json'
 
 function book(overrides: Partial<BookSearchDocument>): BookSearchDocument {
-  return makeSearchHit({
+  return {
+    ...searchHit,
     bookId: 'id',
     title: 'A Book',
     seriesName: null,
     seriesPosition: null,
     publicationYear: null,
     ...overrides,
-  })
+  }
 }
 
 describe('groupBySeries', () => {

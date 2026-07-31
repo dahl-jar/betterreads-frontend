@@ -7,12 +7,12 @@ import { server } from '@/testing/msw-server'
 import { type ReadingStatus } from '../api/shelfSchemas'
 import { useShelf } from '../hooks/useShelf'
 
-import { makeShelfEntry } from './mocks/shelfEntry'
+import shelfEntry from './mocks/shelf-entry.json'
 
 const SHELF_URL = 'http://localhost:8080/api/v1/me/books'
 
 function entry(key: string, status: string) {
-  return makeShelfEntry({ key, title: key, status })
+  return { ...shelfEntry, key, title: key, status }
 }
 
 describe('useShelf', () => {

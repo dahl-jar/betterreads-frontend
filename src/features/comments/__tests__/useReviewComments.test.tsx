@@ -6,7 +6,7 @@ import { server } from '@/testing/msw-server'
 
 import { useReviewComments } from '../hooks/useReviewComments'
 
-import { makeComment } from './mocks/comment'
+import comment from './mocks/comment.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 
@@ -30,7 +30,7 @@ describe('useReviewComments', () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
         HttpResponse.json({
-          data: [makeComment(1), makeComment(2)],
+          data: [comment, { ...comment, id: 2 }],
           meta: { total: 2, offset: 0, limit: 20 },
         }),
       ),
@@ -48,7 +48,10 @@ describe('useReviewComments', () => {
   it('should flag more pages when the total exceeds the loaded count', async () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: [makeComment(1)], meta: { total: 5, offset: 0, limit: 1 } }),
+        HttpResponse.json({
+          data: [comment],
+          meta: { total: 5, offset: 0, limit: 1 },
+        }),
       ),
     )
 
@@ -65,7 +68,7 @@ describe('useReviewComments', () => {
         const offset = new URL(request.url).searchParams.get('offset')
         const id = offset === '0' ? 1 : 2
         return HttpResponse.json({
-          data: [makeComment(id)],
+          data: [{ ...comment, id }],
           meta: { total: 2, offset: Number(offset), limit: 1 },
         })
       }),
@@ -84,10 +87,13 @@ describe('useReviewComments', () => {
   it('should prepend a posted comment', async () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: [makeComment(1)], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({
+          data: [comment],
+          meta: { total: 1, offset: 0, limit: 20 },
+        }),
       ),
       http.post(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: makeComment(9) }, { status: 201 }),
+        HttpResponse.json({ data: { ...comment, id: 9 } }, { status: 201 }),
       ),
     )
 
@@ -121,7 +127,7 @@ describe('useReviewComments', () => {
           return new HttpResponse(null, { status: 500 })
         }
         return HttpResponse.json({
-          data: [makeComment(1)],
+          data: [comment],
           meta: { total: 1, offset: 0, limit: 20 },
         })
       }),
@@ -140,10 +146,13 @@ describe('useReviewComments', () => {
   it('should keep a comment posted while the first page was loading', async () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: [makeComment(1)], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({
+          data: [comment],
+          meta: { total: 1, offset: 0, limit: 20 },
+        }),
       ),
       http.post(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: makeComment(9) }, { status: 201 }),
+        HttpResponse.json({ data: { ...comment, id: 9 } }, { status: 201 }),
       ),
     )
     const { result } = renderHook(() => useReviewComments(7))

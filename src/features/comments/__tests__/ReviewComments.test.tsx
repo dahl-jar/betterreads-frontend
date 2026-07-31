@@ -9,7 +9,7 @@ import { renderWithProviders, screen, waitFor } from '@/testing/test-utils'
 
 import { ReviewComments } from '../components/ReviewComments'
 
-import { makeComment } from './mocks/comment'
+import comment from './mocks/comment.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 afterEach(() => {
@@ -38,7 +38,10 @@ describe('ReviewComments', () => {
     stubSignedOut()
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: [makeComment(1)], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({
+          data: [comment],
+          meta: { total: 1, offset: 0, limit: 20 },
+        }),
       ),
     )
     const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
@@ -52,7 +55,10 @@ describe('ReviewComments', () => {
     stubSignedOut()
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: [makeComment(1)], meta: { total: 4, offset: 0, limit: 1 } }),
+        HttpResponse.json({
+          data: [comment],
+          meta: { total: 4, offset: 0, limit: 1 },
+        }),
       ),
     )
     const { user } = renderWithProviders(
@@ -73,7 +79,10 @@ describe('ReviewComments', () => {
       ),
       http.post(`${BASE}/reviews/7/comments`, async ({ request }) => {
         sent = await request.json()
-        return HttpResponse.json({ data: makeComment(9, { body: 'My comment' }) }, { status: 201 })
+        return HttpResponse.json(
+          { data: { ...comment, id: 9, body: 'My comment' } },
+          { status: 201 },
+        )
       }),
     )
     const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={0} />)
@@ -108,7 +117,10 @@ describe('ReviewComments', () => {
     stubSignedIn()
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: [makeComment(1)], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({
+          data: [comment],
+          meta: { total: 1, offset: 0, limit: 20 },
+        }),
       ),
     )
     const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
@@ -124,13 +136,13 @@ describe('ReviewComments', () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
         HttpResponse.json({
-          data: [makeComment(1, { replyCount: 2 })],
+          data: [{ ...comment, replyCount: 2 }],
           meta: { total: 1, offset: 0, limit: 20 },
         }),
       ),
       http.get(`${BASE}/comments/1/replies`, () =>
         HttpResponse.json({
-          data: [makeComment(10, { body: 'A reply' })],
+          data: [{ ...comment, id: 10, body: 'A reply' }],
           meta: { total: 1, offset: 0, limit: 20 },
         }),
       ),
@@ -148,13 +160,13 @@ describe('ReviewComments', () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
         HttpResponse.json({
-          data: [makeComment(1, { replyCount: 5 })],
+          data: [{ ...comment, replyCount: 5 }],
           meta: { total: 1, offset: 0, limit: 20 },
         }),
       ),
       http.get(`${BASE}/comments/1/replies`, () =>
         HttpResponse.json({
-          data: [makeComment(10, { body: 'First reply' })],
+          data: [{ ...comment, id: 10, body: 'First reply' }],
           meta: { total: 5, offset: 0, limit: 20 },
         }),
       ),

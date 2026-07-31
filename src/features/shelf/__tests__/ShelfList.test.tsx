@@ -7,13 +7,13 @@ import { renderWithProviders, screen, waitFor, within } from '@/testing/test-uti
 
 import { ShelfList } from '../components/ShelfList'
 
-import { makeShelfEntry } from './mocks/shelfEntry'
+import shelfEntry from './mocks/shelf-entry.json'
 
 const SHELF_URL = 'http://localhost:8080/api/v1/me/books'
 const SHELF_PAGE_SIZE = 15
 
 function entry(key: string, title: string, status: string) {
-  return makeShelfEntry({ key, title, status, averageRating: null })
+  return { ...shelfEntry, key, title, status, averageRating: null }
 }
 
 function entries(count: number, status = 'FINISHED') {

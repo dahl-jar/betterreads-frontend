@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { AuthProvider } from '@/app/components/AuthProvider'
 import { clearAccessToken } from '@/lib/api/token'
-import { makeAuthResponse } from '@/testing/mocks/auth'
+import auth from '@/testing/mocks/auth.json'
 import { server } from '@/testing/msw-server'
 
 import { routes } from './router'
@@ -21,7 +21,7 @@ function renderAt(path: string, authenticated = false) {
   server.use(
     authenticated
       ? http.post(`${BASE}/refresh`, () =>
-          HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt' }) }),
+          HttpResponse.json({ data: { ...auth, accessToken: 'jwt' } }),
         )
       : http.post(`${BASE}/refresh`, () => new HttpResponse(null, { status: 401 })),
     http.get('http://localhost:8080/api/v1/books', () => HttpResponse.json({ data: [] })),

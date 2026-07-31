@@ -5,7 +5,7 @@ import { server } from '@/testing/msw-server'
 
 import { searchBooks } from '../api/searchBooks'
 
-import { makeSearchHit } from './mocks/searchHit'
+import searchHit from './mocks/search-hit.json'
 
 const SEARCH_URL = 'http://localhost:8080/api/v1/search/books'
 
@@ -17,7 +17,7 @@ function pagedBody(
 }
 
 function defaultHit() {
-  return makeSearchHit({ bookId: 'book-1', popularityScore: 8.4 })
+  return { ...searchHit, bookId: 'book-1', popularityScore: 8.4 }
 }
 
 describe('searchBooks', () => {

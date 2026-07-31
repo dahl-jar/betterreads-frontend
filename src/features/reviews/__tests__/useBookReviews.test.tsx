@@ -8,12 +8,12 @@ import { AuthProvider } from '@/app/components/AuthProvider'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedIn, stubSignedOut } from '@/testing/authHandlers'
-import { makeAuthResponse } from '@/testing/mocks/auth'
+import auth from '@/testing/mocks/auth.json'
 import { server } from '@/testing/msw-server'
 
 import { useBookReviews } from '../hooks/useBookReviews'
 
-import { makeReview } from './mocks/review'
+import review from './mocks/review.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 const AUTH_BASE = `${BASE}/auth`
@@ -37,7 +37,7 @@ describe('useBookReviews', () => {
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({
-          data: [makeReview(), makeReview({ id: 2, rating: 3 })],
+          data: [review, { ...review, id: 2, rating: 3 }],
           meta: { total: 2, offset: 0, limit: 20 },
         }),
       ),
@@ -55,12 +55,12 @@ describe('useBookReviews', () => {
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({
-          data: [makeReview(), makeReview({ id: 2, rating: 3 })],
+          data: [review, { ...review, id: 2, rating: 3 }],
           meta: { total: 2, offset: 0, limit: 20 },
         }),
       ),
       http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 100 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 100 } }),
       ),
     )
 
@@ -84,14 +84,14 @@ describe('useBookReviews', () => {
       http.get(`${BASE}/books/:key/reviews`, async ({ params }) => {
         if (params.key === 'OL1W') {
           return HttpResponse.json({
-            data: [makeReview()],
+            data: [review],
             meta: { total: 1, offset: 0, limit: 20 },
           })
         }
         markNextReviewsStarted()
         await heldNextReviews
         return HttpResponse.json({
-          data: [makeReview({ id: 2, bookKey: 'OL2W', title: 'The next book' })],
+          data: [{ ...review, id: 2, bookKey: 'OL2W', title: 'The next book' }],
           meta: { total: 1, offset: 0, limit: 20 },
         })
       }),
@@ -136,10 +136,10 @@ describe('useBookReviews', () => {
     server.use(
       http.post(`${AUTH_BASE}/refresh`, async () => {
         await heldSession
-        return HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt' }) })
+        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt' } })
       }),
       http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
       ),
       http.get(`${BASE}/me/reviews`, async () => {
         ownLookupStarted = true
@@ -176,7 +176,7 @@ describe('useBookReviews', () => {
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({
-          data: [makeReview(), makeReview({ id: 2, rating: 3 })],
+          data: [review, { ...review, id: 2, rating: 3 }],
           meta: { total: 2, offset: 0, limit: 20 },
         }),
       ),
@@ -200,13 +200,13 @@ describe('useBookReviews', () => {
     })
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
       ),
       http.get(`${BASE}/me/reviews`, async () => {
         ownLookupStarted = true
         await heldOwnLookup
         return HttpResponse.json({
-          data: [makeReview({ id: 9, bookKey: 'OL1W' })],
+          data: [{ ...review, id: 9, bookKey: 'OL1W' }],
           meta: { total: 1, offset: 0, limit: 100 },
         })
       }),
@@ -226,7 +226,7 @@ describe('useBookReviews', () => {
     stubSignedOut()
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
       ),
     )
 
@@ -246,7 +246,7 @@ describe('useBookReviews', () => {
         HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 100 } }),
       ),
       http.put(`${BASE}/books/OL1W/reviews/me`, () =>
-        HttpResponse.json({ data: makeReview({ id: 9, rating: 4 }) }),
+        HttpResponse.json({ data: { ...review, id: 9, rating: 4 } }),
       ),
     )
 
@@ -269,7 +269,7 @@ describe('useBookReviews', () => {
         HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 100 } }),
       ),
       http.put(`${BASE}/books/OL1W/reviews/me`, () =>
-        HttpResponse.json({ data: makeReview({ id: 9, rating: 4 }) }),
+        HttpResponse.json({ data: { ...review, id: 9, rating: 4 } }),
       ),
     )
 
@@ -289,7 +289,7 @@ describe('useBookReviews', () => {
       ),
       http.get(`${BASE}/me/reviews`, () =>
         HttpResponse.json({
-          data: [makeReview({ id: 9 })],
+          data: [{ ...review, id: 9 }],
           meta: { total: 1, offset: 0, limit: 100 },
         }),
       ),

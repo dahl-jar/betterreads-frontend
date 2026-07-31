@@ -8,7 +8,7 @@ import { findMyReviewForBook } from '../api/findMyReviewForBook'
 import { getBookReviews } from '../api/getBookReviews'
 import { upsertMyReview } from '../api/upsertMyReview'
 
-import { makeReview } from './mocks/review'
+import review from './mocks/review.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 
@@ -20,7 +20,7 @@ describe('getBookReviews', () => {
   it("should return a page of a book's reviews with its total", async () => {
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
-        pageOf([makeReview(), makeReview({ id: 6, rating: 3 })], 2, 0, 20),
+        pageOf([review, { ...review, id: 6, rating: 3 }], 2, 0, 20),
       ),
     )
 
@@ -64,7 +64,7 @@ describe('upsertMyReview', () => {
     server.use(
       http.put(`${BASE}/books/OL1W/reviews/me`, async ({ request }) => {
         sentBody = await request.json()
-        return HttpResponse.json({ data: makeReview() })
+        return HttpResponse.json({ data: review })
       }),
     )
 
@@ -98,7 +98,7 @@ describe('findMyReviewForBook', () => {
   it("should return the caller's review for the book from the first page", async () => {
     server.use(
       http.get(`${BASE}/me/reviews`, () =>
-        pageOf([makeReview({ id: 8, bookKey: 'OL2W' }), makeReview()], 2, 0, 20),
+        pageOf([{ ...review, id: 8, bookKey: 'OL2W' }, review], 2, 0, 20),
       ),
     )
 
@@ -112,9 +112,9 @@ describe('findMyReviewForBook', () => {
       http.get(`${BASE}/me/reviews`, ({ request }) => {
         const offset = Number(new URL(request.url).searchParams.get('offset') ?? '0')
         if (offset === 0) {
-          return pageOf([makeReview({ id: 8, bookKey: 'OL2W' })], 2, 0, 1)
+          return pageOf([{ ...review, id: 8, bookKey: 'OL2W' }], 2, 0, 1)
         }
-        return pageOf([makeReview()], 2, 1, 1)
+        return pageOf([review], 2, 1, 1)
       }),
     )
 
@@ -126,7 +126,7 @@ describe('findMyReviewForBook', () => {
   it('should return undefined without a review', async () => {
     server.use(
       http.get(`${BASE}/me/reviews`, () =>
-        pageOf([makeReview({ id: 8, bookKey: 'OL2W' })], 1, 0, 20),
+        pageOf([{ ...review, id: 8, bookKey: 'OL2W' }], 1, 0, 20),
       ),
     )
 

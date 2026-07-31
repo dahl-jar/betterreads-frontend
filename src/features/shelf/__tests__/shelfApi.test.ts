@@ -8,7 +8,7 @@ import { changeShelfStatus } from '../api/changeShelfStatus'
 import { getShelf } from '../api/getShelf'
 import { removeFromShelf } from '../api/removeFromShelf'
 
-import { makeShelfEntry } from './mocks/shelfEntry'
+import shelfEntry from './mocks/shelf-entry.json'
 
 const SHELF_URL = 'http://localhost:8080/api/v1/me/books'
 const DUNE_KEY = 'OL893415W'
@@ -17,7 +17,7 @@ describe('getShelf', () => {
   it('should return the parsed shelf entries', async () => {
     server.use(
       http.get(SHELF_URL, () =>
-        HttpResponse.json({ data: [makeShelfEntry({ status: 'CURRENTLY_READING' })] }),
+        HttpResponse.json({ data: [{ ...shelfEntry, status: 'CURRENTLY_READING' }] }),
       ),
     )
 
@@ -33,7 +33,7 @@ describe('getShelf', () => {
     server.use(
       http.get(SHELF_URL, ({ request }) => {
         receivedStatus = new URL(request.url).searchParams.get('status')
-        return HttpResponse.json({ data: [makeShelfEntry({ status: 'FINISHED' })] })
+        return HttpResponse.json({ data: [{ ...shelfEntry, status: 'FINISHED' }] })
       }),
     )
 
@@ -69,7 +69,7 @@ describe('getShelf', () => {
   it('should reject an entry with an unknown status value', async () => {
     server.use(
       http.get(SHELF_URL, () =>
-        HttpResponse.json({ data: [makeShelfEntry({ status: 'NOT_A_STATUS' })] }),
+        HttpResponse.json({ data: [{ ...shelfEntry, status: 'NOT_A_STATUS' }] }),
       ),
     )
 
@@ -84,7 +84,7 @@ describe('changeShelfStatus', () => {
       http.put(`${SHELF_URL}/${DUNE_KEY}/status`, async ({ request }) => {
         received = await request.json()
         return HttpResponse.json({
-          data: makeShelfEntry({ status: 'FINISHED', finishedAt: '2026-02-14' }),
+          data: { ...shelfEntry, status: 'FINISHED', finishedAt: '2026-02-14' },
         })
       }),
     )
@@ -103,7 +103,7 @@ describe('changeFavorite', () => {
     server.use(
       http.put(`${SHELF_URL}/${DUNE_KEY}/favorite`, async ({ request }) => {
         received = await request.json()
-        return HttpResponse.json({ data: makeShelfEntry({ favorite: true }) })
+        return HttpResponse.json({ data: { ...shelfEntry, favorite: true } })
       }),
     )
 

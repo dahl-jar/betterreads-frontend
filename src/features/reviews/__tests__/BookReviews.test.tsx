@@ -9,7 +9,7 @@ import { renderWithProviders, screen, waitFor } from '@/testing/test-utils'
 
 import { BookReviews } from '../components/BookReviews'
 
-import { makeReview } from './mocks/review'
+import review from './mocks/review.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 
@@ -45,7 +45,7 @@ describe('BookReviews', () => {
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({
-          data: [makeReview(), makeReview({ id: 2, title: 'Slow middle', body: 'Drags.' })],
+          data: [review, { ...review, id: 2, title: 'Slow middle', body: 'Drags.' }],
           meta: { total: 2, offset: 0, limit: 20 },
         }),
       ),
@@ -70,7 +70,7 @@ describe('BookReviews', () => {
       http.put(`${BASE}/books/OL1W/reviews/me`, async ({ request }) => {
         sentBody = await request.json()
         return HttpResponse.json({
-          data: makeReview({ id: 9, rating: 4, title: null, body: null }),
+          data: { ...review, id: 9, rating: 4, title: null, body: null },
         })
       }),
     )
@@ -84,7 +84,7 @@ describe('BookReviews', () => {
   it('should preserve review text when the rating changes', async () => {
     stubSignedIn()
     let sentBody: unknown
-    const existing = makeReview({ id: 9, rating: 5, title: 'A desert epic', body: 'Spice.' })
+    const existing = { ...review, id: 9, rating: 5, title: 'A desert epic', body: 'Spice.' }
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({ data: [existing], meta: { total: 1, offset: 0, limit: 20 } }),
@@ -94,7 +94,7 @@ describe('BookReviews', () => {
       ),
       http.put(`${BASE}/books/OL1W/reviews/me`, async ({ request }) => {
         sentBody = await request.json()
-        return HttpResponse.json({ data: makeReview({ ...existing, rating: 2 }) })
+        return HttpResponse.json({ data: { ...existing, rating: 2 } })
       }),
     )
     const { user } = renderWithProviders(<BookReviews bookKey="OL1W" />)
@@ -111,10 +111,10 @@ describe('BookReviews', () => {
     stubSignedIn()
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
       ),
       http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 100 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 100 } }),
       ),
     )
 
@@ -129,12 +129,12 @@ describe('BookReviews', () => {
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({
-          data: [makeReview(), makeReview({ id: 2, title: 'Another voice' })],
+          data: [review, { ...review, id: 2, title: 'Another voice' }],
           meta: { total: 2, offset: 0, limit: 20 },
         }),
       ),
       http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 100 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 100 } }),
       ),
     )
 
@@ -147,7 +147,7 @@ describe('BookReviews', () => {
   it('should block rating changes until ownership loads', async () => {
     stubSignedIn()
     let putCalled = false
-    const existing = makeReview({ id: 9, rating: 5, title: 'A desert epic', body: 'Spice.' })
+    const existing = { ...review, id: 9, rating: 5, title: 'A desert epic', body: 'Spice.' }
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({ data: [existing], meta: { total: 1, offset: 0, limit: 20 } }),
@@ -177,10 +177,10 @@ describe('BookReviews', () => {
     stubSignedIn()
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
       ),
       http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 100 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 100 } }),
       ),
       http.put(`${BASE}/books/OL1W/reviews/me`, () => new HttpResponse(null, { status: 500 })),
     )
@@ -205,10 +205,10 @@ describe('BookReviews', () => {
     stubSignedIn()
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 20 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
       ),
       http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({ data: [makeReview()], meta: { total: 1, offset: 0, limit: 100 } }),
+        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 100 } }),
       ),
       http.delete(`${BASE}/books/OL1W/reviews/me`, () => new HttpResponse(null, { status: 500 })),
     )

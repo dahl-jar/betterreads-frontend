@@ -6,18 +6,19 @@ import { fireEvent, renderWithProviders, screen } from '@/testing/test-utils'
 
 import { BookListSection } from '../components/BookListSection'
 
-import { makeCatalogCard } from './mocks/catalogCard'
+import catalogCard from './mocks/catalog-card.json'
 
 const LIST_URL = 'http://localhost:8080/api/v1/books'
 
 function card(key: string, title: string, average: number | null) {
-  return makeCatalogCard({
+  return {
+    ...catalogCard,
     key,
     title,
     coverUrl: `https://covers.example/${key}.jpg`,
     averageRating: average,
     ratingCount: average === null ? null : 1_400_000,
-  })
+  }
 }
 
 describe('BookListSection', () => {

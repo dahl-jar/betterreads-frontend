@@ -6,7 +6,7 @@ import { server } from '@/testing/msw-server'
 
 import { useBookComments } from '../hooks/useBookComments'
 
-import { makeComment } from './mocks/comment'
+import comment from './mocks/comment.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 
@@ -17,7 +17,7 @@ describe('useBookComments', () => {
       http.get(`${BASE}/books/OL1W/comments`, ({ request }) => {
         path = new URL(request.url).pathname
         return HttpResponse.json({
-          data: [makeComment(1)],
+          data: [comment],
           meta: { total: 1, offset: 0, limit: 20 },
         })
       }),
@@ -39,7 +39,7 @@ describe('useBookComments', () => {
       ),
       http.post(`${BASE}/books/OL1W/comments`, async ({ request }) => {
         sent = await request.json()
-        return HttpResponse.json({ data: makeComment(9) }, { status: 201 })
+        return HttpResponse.json({ data: { ...comment, id: 9 } }, { status: 201 })
       }),
     )
     const { result } = renderHook(() => useBookComments('OL1W'))

@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { clearAccessToken } from '@/lib/api/token'
-import { makeAuthResponse } from '@/testing/mocks/auth'
+import auth from '@/testing/mocks/auth.json'
 import { server } from '@/testing/msw-server'
 
 import { deleteAccount } from '../api/deleteAccount'
@@ -25,7 +25,7 @@ describe('refresh', () => {
     server.use(
       http.post(`${BASE}/refresh`, () => {
         rotations += 1
-        return HttpResponse.json({ data: makeAuthResponse({ accessToken: `jwt-${rotations}` }) })
+        return HttpResponse.json({ data: { ...auth, accessToken: `jwt-${rotations}` } })
       }),
     )
 
@@ -41,7 +41,7 @@ describe('refresh', () => {
     server.use(
       http.post(`${BASE}/refresh`, () => {
         rotations += 1
-        return HttpResponse.json({ data: makeAuthResponse({ accessToken: `jwt-${rotations}` }) })
+        return HttpResponse.json({ data: { ...auth, accessToken: `jwt-${rotations}` } })
       }),
     )
 
@@ -61,7 +61,7 @@ describe('refresh', () => {
         if (rotations === 1) {
           return new HttpResponse(null, { status: 401 })
         }
-        return HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt-recovered' }) })
+        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-recovered' } })
       }),
     )
 
@@ -78,7 +78,7 @@ describe('register', () => {
     server.use(
       http.post(`${BASE}/register`, async ({ request }) => {
         sentBody = await request.json()
-        return HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt-abc' }) })
+        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-abc' } })
       }),
     )
 
@@ -113,7 +113,7 @@ describe('login', () => {
     server.use(
       http.post(`${BASE}/login`, async ({ request }) => {
         sentBody = await request.json()
-        return HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt-xyz' }) })
+        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-xyz' } })
       }),
     )
 

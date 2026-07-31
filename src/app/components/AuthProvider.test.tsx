@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { useAuth } from '@/hooks/useAuth'
 import { apiGet, setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken, getAccessToken } from '@/lib/api/token'
-import { makeAuthResponse } from '@/testing/mocks/auth'
+import auth from '@/testing/mocks/auth.json'
 import { server } from '@/testing/msw-server'
 
 import { AuthProvider } from './AuthProvider'
@@ -47,7 +47,7 @@ describe('AuthProvider', () => {
   it('should recover a valid session', async () => {
     server.use(
       http.post(`${BASE}/refresh`, () =>
-        HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt-1' }) }),
+        HttpResponse.json({ data: { ...auth, accessToken: 'jwt-1' } }),
       ),
     )
 
@@ -71,7 +71,7 @@ describe('AuthProvider', () => {
       http.post(`${BASE}/refresh`, () => new HttpResponse(null, { status: 401 })),
       http.post(`${BASE}/login`, () =>
         HttpResponse.json({
-          data: makeAuthResponse({ accessToken: 'jwt-2' }, { emailVerified: false }),
+          data: { ...auth, accessToken: 'jwt-2', user: { ...auth.user, emailVerified: false } },
         }),
       ),
     )
@@ -87,7 +87,7 @@ describe('AuthProvider', () => {
   it('should clear the session after logout', async () => {
     server.use(
       http.post(`${BASE}/refresh`, () =>
-        HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt-3' }) }),
+        HttpResponse.json({ data: { ...auth, accessToken: 'jwt-3' } }),
       ),
       http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: 204 })),
     )
@@ -103,7 +103,7 @@ describe('AuthProvider', () => {
   it('should clear the session when logout fails', async () => {
     server.use(
       http.post(`${BASE}/refresh`, () =>
-        HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt-3' }) }),
+        HttpResponse.json({ data: { ...auth, accessToken: 'jwt-3' } }),
       ),
       http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: 500 })),
     )
@@ -127,7 +127,7 @@ describe('AuthProvider', () => {
       http.post(`${BASE}/refresh`, async () => {
         refreshRequests += 1
         if (refreshRequests === 1) {
-          return HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt-4' }) })
+          return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-4' } })
         }
         await protectedRequestsComplete
         return new HttpResponse(null, { status: 401 })

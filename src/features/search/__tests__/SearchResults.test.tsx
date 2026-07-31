@@ -6,13 +6,13 @@ import { render, screen } from '@/testing/test-utils'
 import type { BookSearchDocument } from '../api/searchBooks'
 import { SearchResults } from '../components/SearchResults'
 
-import { makeSearchHit } from './mocks/searchHit'
+import searchHit from './mocks/search-hit.json'
 
 function renderResults(ui: React.ReactElement) {
   return render(<MemoryRouter>{ui}</MemoryRouter>)
 }
 
-const dune = makeSearchHit({ popularityScore: 9 }) as BookSearchDocument
+const dune = { ...searchHit, popularityScore: 9 } as BookSearchDocument
 
 describe('SearchResults', () => {
   it('should render search hits', () => {
@@ -54,7 +54,8 @@ describe('SearchResults', () => {
   })
 
   it('should group books that share a series under one series heading', () => {
-    const firstEmpire = makeSearchHit({
+    const firstEmpire = {
+      ...searchHit,
       bookId: '1',
       title: 'The Final Empire',
       seriesName: 'Mistborn',
@@ -63,7 +64,7 @@ describe('SearchResults', () => {
       subjects: [],
       publicationYear: 2006,
       popularityScore: 8,
-    }) as BookSearchDocument
+    } as BookSearchDocument
     const wellOfAscension: BookSearchDocument = {
       ...firstEmpire,
       bookId: '2',
@@ -83,7 +84,8 @@ describe('SearchResults', () => {
   })
 
   it('should render a standalone book without a series heading', () => {
-    const warbreaker = makeSearchHit({
+    const warbreaker = {
+      ...searchHit,
       bookId: 'w',
       title: 'Warbreaker',
       seriesName: null,
@@ -92,7 +94,7 @@ describe('SearchResults', () => {
       subjects: [],
       publicationYear: 2009,
       popularityScore: 7,
-    }) as BookSearchDocument
+    } as BookSearchDocument
     renderResults(<SearchResults status="success" hits={[warbreaker]} query="warbreaker" />)
 
     expect(screen.queryByRole('heading')).not.toBeInTheDocument()

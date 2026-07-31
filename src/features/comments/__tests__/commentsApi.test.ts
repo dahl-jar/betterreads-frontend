@@ -7,7 +7,7 @@ import { getCommentReplies } from '../api/getCommentReplies'
 import { getReviewComments } from '../api/getReviewComments'
 import { postReviewComment } from '../api/postReviewComment'
 
-import { makeComment } from './mocks/comment'
+import comment from './mocks/comment.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 
@@ -16,7 +16,7 @@ describe('getReviewComments', () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
         HttpResponse.json({
-          data: [makeComment(), makeComment({ id: 2, replyCount: 3 })],
+          data: [comment, { ...comment, id: 2, replyCount: 3 }],
           meta: { total: 12, offset: 0, limit: 20 },
         }),
       ),
@@ -52,7 +52,7 @@ describe('postReviewComment', () => {
     server.use(
       http.post(`${BASE}/reviews/7/comments`, async ({ request }) => {
         sent = await request.json()
-        return HttpResponse.json({ data: makeComment({ id: 5, body: 'Agreed.' }) }, { status: 201 })
+        return HttpResponse.json({ data: { ...comment, id: 5, body: 'Agreed.' } }, { status: 201 })
       }),
     )
 
@@ -67,7 +67,7 @@ describe('postReviewComment', () => {
     server.use(
       http.post(`${BASE}/reviews/7/comments`, async ({ request }) => {
         sent = await request.json()
-        return HttpResponse.json({ data: makeComment({ id: 6 }) }, { status: 201 })
+        return HttpResponse.json({ data: { ...comment, id: 6 } }, { status: 201 })
       }),
     )
 
@@ -82,7 +82,7 @@ describe('getCommentReplies', () => {
     server.use(
       http.get(`${BASE}/comments/5/replies`, () =>
         HttpResponse.json({
-          data: [makeComment({ id: 8 })],
+          data: [{ ...comment, id: 8 }],
           meta: { total: 1, offset: 0, limit: 20 },
         }),
       ),

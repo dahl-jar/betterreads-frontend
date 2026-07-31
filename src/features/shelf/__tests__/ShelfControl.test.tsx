@@ -5,13 +5,13 @@ import { useAuth } from '@/hooks/useAuth'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedIn as stubAuthenticatedSession, stubSignedOut } from '@/testing/authHandlers'
-import { makeAuthResponse } from '@/testing/mocks/auth'
+import auth from '@/testing/mocks/auth.json'
 import { server } from '@/testing/msw-server'
 import { renderWithProviders, screen, waitFor } from '@/testing/test-utils'
 
 import { ShelfControl } from '../components/ShelfControl'
 
-import { makeShelfEntry } from './mocks/shelfEntry'
+import shelfEntry from './mocks/shelf-entry.json'
 
 const AUTH_BASE = 'http://localhost:8080/api/v1/auth'
 const SHELF_BASE = 'http://localhost:8080/api/v1/me/books'
@@ -93,12 +93,12 @@ describe('ShelfControl', () => {
         requestCount += 1
         if (requestCount === 1) {
           return HttpResponse.json({
-            data: [makeShelfEntry({ status: 'FINISHED', favorite: true })],
+            data: [{ ...shelfEntry, status: 'FINISHED', favorite: true }],
           })
         }
         nextShelfRequested = true
         await heldNextShelf
-        return HttpResponse.json({ data: [makeShelfEntry({ status: 'FINISHED', favorite: true })] })
+        return HttpResponse.json({ data: [{ ...shelfEntry, status: 'FINISHED', favorite: true }] })
       }),
     )
     const { rerender } = renderWithProviders(<ShelfControl bookKey={DUNE_KEY} />)
@@ -126,22 +126,23 @@ describe('ShelfControl', () => {
     })
     server.use(
       http.post(`${AUTH_BASE}/refresh`, () =>
-        HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt' }) }),
+        HttpResponse.json({ data: { ...auth, accessToken: 'jwt' } }),
       ),
       http.post(`${AUTH_BASE}/logout`, () => new HttpResponse(null, { status: 204 })),
       http.post(`${AUTH_BASE}/login`, () => {
         currentReader = 'mustang'
         return HttpResponse.json({
-          data: makeAuthResponse(
-            { accessToken: 'next-jwt' },
-            { username: currentReader, email: `${currentReader}@example.com` },
-          ),
+          data: {
+            ...auth,
+            accessToken: 'next-jwt',
+            user: { ...auth.user, username: currentReader, email: `${currentReader}@example.com` },
+          },
         })
       }),
       http.get(SHELF_BASE, async () => {
         if (currentReader === 'darrow') {
           return HttpResponse.json({
-            data: [makeShelfEntry({ status: 'FINISHED', favorite: true })],
+            data: [{ ...shelfEntry, status: 'FINISHED', favorite: true }],
           })
         }
         nextShelfRequested = true
@@ -173,7 +174,7 @@ describe('ShelfControl', () => {
   })
 
   it('should reflect an already-shelved status on mount', async () => {
-    stubSignedIn([makeShelfEntry({ status: 'FINISHED' })])
+    stubSignedIn([{ ...shelfEntry, status: 'FINISHED' }])
 
     renderWithProviders(<ShelfControl bookKey={DUNE_KEY} />)
 
@@ -187,7 +188,7 @@ describe('ShelfControl', () => {
       http.put(`${SHELF_BASE}/${DUNE_KEY}/status`, async ({ request }) => {
         received = await request.json()
         return HttpResponse.json({
-          data: makeShelfEntry({ status: 'CURRENTLY_READING', startedAt: '2026-01-02' }),
+          data: { ...shelfEntry, status: 'CURRENTLY_READING', startedAt: '2026-01-02' },
         })
       }),
     )
@@ -202,7 +203,7 @@ describe('ShelfControl', () => {
   })
 
   it('should reset after removing the book', async () => {
-    stubSignedIn([makeShelfEntry({ status: 'FINISHED' })])
+    stubSignedIn([{ ...shelfEntry, status: 'FINISHED' }])
     let deleted = false
     server.use(
       http.delete(`${SHELF_BASE}/${DUNE_KEY}`, () => {
@@ -226,7 +227,7 @@ describe('ShelfControl', () => {
     server.use(
       http.put(`${SHELF_BASE}/${DUNE_KEY}/favorite`, async ({ request }) => {
         received = await request.json()
-        return HttpResponse.json({ data: makeShelfEntry({ favorite: true }) })
+        return HttpResponse.json({ data: { ...shelfEntry, favorite: true } })
       }),
     )
     const { user } = renderWithProviders(<ShelfControl bookKey={DUNE_KEY} />)

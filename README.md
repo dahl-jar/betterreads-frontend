@@ -37,3 +37,7 @@ pnpm build
 ## Tests
 
 Tests mock HTTP with MSW. They do not call the BetterReads API.
+
+## License
+
+Apache 2.0. See [LICENSE](LICENSE).

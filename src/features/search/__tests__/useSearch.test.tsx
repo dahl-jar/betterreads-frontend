@@ -6,20 +6,19 @@ import { server } from '@/testing/msw-server'
 
 import { PAGE_SIZE, useSearch } from '../hooks/useSearch'
 
-import { makeSearchHit } from './mocks/searchHit'
+import searchHit from './mocks/search-hit.json'
 
 const SEARCH_URL = 'http://localhost:8080/api/v1/search/books'
 
 function makeHits(count: number, offset = 0) {
-  return Array.from({ length: count }, (_, index) =>
-    makeSearchHit({
-      bookId: `book-${offset + index}`,
-      title: `Book ${offset + index}`,
-      authors: ['An Author'],
-      subjects: [],
-      popularityScore: 1,
-    }),
-  )
+  return Array.from({ length: count }, (_, index) => ({
+    ...searchHit,
+    bookId: `book-${offset + index}`,
+    title: `Book ${offset + index}`,
+    authors: ['An Author'],
+    subjects: [],
+    popularityScore: 1,
+  }))
 }
 
 function pagedResponse(
