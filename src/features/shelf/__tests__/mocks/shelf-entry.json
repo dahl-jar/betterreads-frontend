@@ -1,0 +1,14 @@
+{
+  "key": "OL893415W",
+  "title": "Dune",
+  "authors": ["Frank Herbert"],
+  "coverUrl": "https://covers.example/dune.jpg",
+  "status": "WANT_TO_READ",
+  "favorite": false,
+  "addedAt": "2026-01-01",
+  "startedAt": null,
+  "finishedAt": null,
+  "notes": null,
+  "averageRating": 4.25,
+  "myRating": null
+}

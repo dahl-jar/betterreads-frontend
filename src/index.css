@@ -1,0 +1,222 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-paper: #faf6ee;
+  --color-surface: #ffffff;
+  --color-ink: #211c14;
+  --color-ink-soft: #6b6354;
+  --color-ink-faint: #9a917f;
+  --color-line: #e7dfd0;
+  --color-green: #2e5e45;
+  --color-green-deep: #234a36;
+  --color-green-soft: #e3ede6;
+  --color-rust: #c0552b;
+
+  --font-display: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --shadow-card: inset 4px 0 0 rgb(0 0 0 / 0.14), 0 1px 3px rgb(33 28 20 / 0.14);
+  --shadow-card-hover: 0 12px 20px rgb(33 28 20 / 0.18);
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: #faf6ee;
+  --foreground: #211c14;
+  --card: #ffffff;
+  --card-foreground: #211c14;
+  --popover: #ffffff;
+  --popover-foreground: #211c14;
+  --primary: #2e5e45;
+  --primary-foreground: #faf6ee;
+  --secondary: #e3ede6;
+  --secondary-foreground: #211c14;
+  --muted: #f1ebdf;
+  --muted-foreground: #6b6354;
+  --accent: #c0552b;
+  --accent-foreground: #ffffff;
+  --destructive: #b3402a;
+  --destructive-foreground: #ffffff;
+  --border: #e7dfd0;
+  --input: #e7dfd0;
+  --ring: #2e5e45;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  html {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* The root font is 15px, so a 1rem input is below iOS Safari's 16px zoom
+     threshold and the page zooms in on focus, then keeps the zoom across SPA
+     navigation. Pin form controls to 16px. Keep this in base, not utilities,
+     and do not put a text-* class on an input: a utility would beat this rule
+     and bring the zoom back. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@layer components {
+  /* Shared body styling for the static content pages (Help, Privacy, Cookies,
+     Terms, About). Each page passes plain h2/p/a markup with no per-section
+     wrapper, so the structure is built from the heading itself: the whole
+     block is one editorial panel, and every h2 acts as a section header with a
+     green accent rule and a divider above it. Following paragraphs are indented
+     to the same inset so each h2-led section reads as a unit. Works for both
+     FAQ-style pages (Help opens on an h2) and prose pages (About/Privacy/Terms/
+     Cookies open on a lead paragraph). */
+  .static-content {
+    --static-inset: 1.25rem;
+
+    border: 1px solid var(--color-line);
+    border-radius: 1rem;
+    background-color: var(--color-surface);
+    padding: 2.5rem 2.75rem;
+    color: var(--color-ink-soft);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    box-shadow:
+      0 1px 2px rgb(33 28 20 / 0.04),
+      0 10px 30px -18px rgb(33 28 20 / 0.22);
+  }
+
+  .static-content > * + * {
+    margin-top: 1.05rem;
+  }
+
+  /* Every body paragraph sits at the section inset so the green accent groups
+     each heading with its answer. */
+  .static-content p {
+    padding-left: var(--static-inset);
+  }
+
+  /* Lead paragraph: the one that opens the panel before any heading. It has no
+     accent heading above it, so it runs flush to the panel edge and reads as an
+     intro lede, slightly larger and in full ink. */
+  .static-content > p:first-child {
+    padding-left: 0;
+    color: var(--color-ink);
+    font-size: 1.1875rem;
+    line-height: 1.7;
+  }
+
+  /* The divider rule that separates each section sits in the margin above the
+     heading, and the green accent bar hugs the heading text only (a tight
+     top/bottom padding keeps the bar from running through the divider gap). */
+  .static-content h2 {
+    position: relative;
+    margin-top: 3rem;
+    padding: 0.1rem 0 0.1rem var(--static-inset);
+    border-left: 3px solid var(--color-green);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 1.375rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    scroll-margin-top: 1.5rem;
+  }
+
+  .static-content h2::before {
+    content: '';
+    position: absolute;
+    top: -1.5rem;
+    left: calc(-1 * var(--static-inset));
+    width: calc(100% + var(--static-inset));
+    border-top: 1px solid var(--color-line);
+  }
+
+  /* The first heading on an FAQ-style page (Help) opens the panel with no lead
+     paragraph above it, so it carries no divider and no extra top gap. */
+  .static-content > h2:first-child {
+    margin-top: 0;
+  }
+
+  .static-content > h2:first-child::before {
+    content: none;
+  }
+
+  /* Tighten the gap between a heading and its first paragraph so the section
+     reads as one block rather than two evenly spaced rows. */
+  .static-content h2 + p {
+    margin-top: 0.85rem;
+  }
+
+  .static-content a {
+    color: var(--color-green);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .static-content a:hover {
+    color: var(--color-green-deep);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* The contact address is shown as plain text to copy, not a link, so it gets
+     a soft green pill to stand out from the surrounding sentence. */
+  .static-content .contact-email {
+    border-radius: 0.375rem;
+    background-color: var(--color-green-soft);
+    padding: 0.1rem 0.4rem;
+    color: var(--color-green-deep);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}
+
+/* Hides the native scrollbar on a strip that pages with its own controls, while
+   leaving it scrollable by trackpad and touch. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

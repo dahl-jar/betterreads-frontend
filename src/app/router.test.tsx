@@ -1,0 +1,142 @@
+import { render, screen, waitFor } from '@testing-library/react'
+import { delay, http, HttpResponse } from 'msw'
+import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router-dom'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { AuthProvider } from '@/app/components/AuthProvider'
+import { clearAccessToken } from '@/lib/api/token'
+import { makeAuthResponse } from '@/testing/mocks/auth'
+import { server } from '@/testing/msw-server'
+
+import { routes } from './router'
+
+const BASE = 'http://localhost:8080/api/v1/auth'
+
+afterEach(() => {
+  clearAccessToken()
+  document.title = ''
+})
+
+function renderAt(path: string, authenticated = false) {
+  server.use(
+    authenticated
+      ? http.post(`${BASE}/refresh`, () =>
+          HttpResponse.json({ data: makeAuthResponse({ accessToken: 'jwt' }) }),
+        )
+      : http.post(`${BASE}/refresh`, () => new HttpResponse(null, { status: 401 })),
+    http.get('http://localhost:8080/api/v1/books', () => HttpResponse.json({ data: [] })),
+    http.get('http://localhost:8080/api/v1/me/books', () => HttpResponse.json({ data: [] })),
+  )
+  const router = createMemoryRouter(routes, { initialEntries: [path] })
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  )
+}
+
+describe('router', () => {
+  it('should render a lazy form route', async () => {
+    renderAt('/login')
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument(),
+    )
+  })
+
+  it('should render the eager landing route synchronously', () => {
+    renderAt('/')
+
+    expect(screen.getByRole('heading', { name: /find your/i })).toBeInTheDocument()
+  })
+
+  it('should render one header', async () => {
+    renderAt('/about')
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /about betterreads/i })).toBeInTheDocument(),
+    )
+    expect(screen.getAllByRole('banner')).toHaveLength(1)
+  })
+
+  it('should set the route title', async () => {
+    renderAt('/about')
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /about betterreads/i })).toBeInTheDocument(),
+    )
+    await waitFor(() => expect(document.title).toMatch(/about/i))
+  })
+
+  it('should title a loaded book', async () => {
+    server.use(
+      http.get('http://localhost:8080/api/v1/books/OL1W', () =>
+        HttpResponse.json({
+          data: {
+            key: 'OL1W',
+            complete: true,
+            title: 'Hunters of Dune',
+            authors: ['Brian Herbert'],
+            subjects: [],
+            awards: [],
+          },
+        }),
+      ),
+      http.get('http://localhost:8080/api/v1/books/OL1W/reviews', () =>
+        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
+      ),
+      http.get('http://localhost:8080/api/v1/books/OL1W/community-rating', () =>
+        HttpResponse.json({ data: { average: null, count: 0, distribution: [] } }),
+      ),
+    )
+
+    renderAt('/books/OL1W')
+
+    await screen.findByRole('heading', { name: 'Hunters of Dune' })
+    await waitFor(() => expect(document.title).toMatch(/hunters of dune/i))
+  })
+
+  it('should name a missing book separately from an unmatched page', async () => {
+    server.use(
+      http.get(
+        'http://localhost:8080/api/v1/books/missing',
+        () => new HttpResponse(null, { status: 404 }),
+      ),
+    )
+
+    renderAt('/books/missing')
+
+    expect(await screen.findByRole('heading', { name: /book/i })).toBeInTheDocument()
+  })
+
+  it('should announce the book detail skeleton while the book loads', async () => {
+    server.use(
+      http.get('http://localhost:8080/api/v1/books/slow', async () => {
+        await delay('infinite')
+        return HttpResponse.json({ data: {} })
+      }),
+    )
+
+    renderAt('/books/slow')
+
+    expect(await screen.findByRole('status', { name: /loading.*book/i })).toBeInTheDocument()
+  })
+
+  it('should render the route error page', () => {
+    function Boom(): never {
+      throw new Error('route blew up')
+    }
+    const errorBoundary: RouteObject = {
+      errorElement: routes[0]!.errorElement,
+      children: [{ children: [{ path: '/boom', element: <Boom /> }] }],
+    }
+    const router = createMemoryRouter([errorBoundary], { initialEntries: ['/boom'] })
+    render(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    )
+
+    expect(screen.getByRole('heading', { name: /something went wrong/i })).toBeInTheDocument()
+  })
+})

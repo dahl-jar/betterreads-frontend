@@ -1,0 +1,8 @@
+{
+  "threshold": 1,
+  "minTokens": 50,
+  "reporters": ["console"],
+  "absolute": true,
+  "gitignore": true,
+  "ignore": ["**/*.test.{ts,tsx}", "**/components/ui/**"]
+}
