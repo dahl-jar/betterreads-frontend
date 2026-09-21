@@ -1,6 +1,7 @@
 import { useEffect, useReducer } from 'react'
 
 import { searchBooks, type BookSearchDocument } from '@/features/search/api/searchBooks'
+import { subscribeToSearchHits } from '@/features/search/api/subscribeToSearchHits'
 
 /** Uses `staging` for a successful first page with no hits. */
 export type SearchStatus = 'idle' | 'loading' | 'success' | 'staging' | 'error'
@@ -19,11 +20,17 @@ type SearchAction =
   | { type: 'start'; page: number }
   | { type: 'resolved'; hits: BookSearchDocument[]; hasNextPage: boolean; page: number }
   | { type: 'failed'; page: number }
+  | { type: 'hit'; hit: BookSearchDocument }
 
 const IDLE_STATE: SearchState = { status: 'idle', hits: [], hasNextPage: false, page: 1 }
 
-function searchReducer(_state: SearchState, action: SearchAction): SearchState {
+function searchReducer(state: SearchState, action: SearchAction): SearchState {
   switch (action.type) {
+    case 'hit':
+      if (state.hits.some((hit) => hit.bookId === action.hit.bookId)) {
+        return state
+      }
+      return { ...state, status: 'success', hits: [...state.hits, action.hit] }
     case 'reset':
       return IDLE_STATE
     case 'start':
@@ -77,6 +84,17 @@ export function useSearch(query: string, page = 1): SearchState {
 
     return () => controller.abort()
   }, [trimmed, page])
+
+  const canStream = page === 1 && (state.status === 'success' || state.status === 'staging')
+
+  useEffect(() => {
+    if (!canStream) {
+      return
+    }
+    return subscribeToSearchHits(trimmed, {
+      onHit: (hit) => dispatch({ type: 'hit', hit }),
+    })
+  }, [trimmed, canStream])
 
   return state
 }

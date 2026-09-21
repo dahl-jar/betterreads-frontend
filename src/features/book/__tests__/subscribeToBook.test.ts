@@ -1,33 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { FakeEventSource, ThrowingEventSource } from '@/testing/fakeEventSource'
 
 import { subscribeToBook } from '../api/subscribeToBook'
-
-type Listener = (event: { data: string }) => void
-
-class FakeEventSource {
-  static instances: FakeEventSource[] = []
-  url: string
-  listeners = new Map<string, Listener>()
-  onerror: ((event: unknown) => void) | null = null
-  closed = false
-
-  constructor(url: string) {
-    this.url = url
-    FakeEventSource.instances.push(this)
-  }
-
-  addEventListener(type: string, listener: Listener) {
-    this.listeners.set(type, listener)
-  }
-
-  emit(type: string, data: unknown) {
-    this.listeners.get(type)?.({ data: JSON.stringify(data) })
-  }
-
-  close() {
-    this.closed = true
-  }
-}
 
 const validDetail = {
   key: 'key-1',
@@ -39,23 +14,20 @@ const validDetail = {
   awards: [],
 }
 
-afterEach(() => {
-  FakeEventSource.instances = []
-})
-
 describe('subscribeToBook', () => {
+  beforeEach(() => {
+    vi.stubGlobal('EventSource', FakeEventSource)
+  })
+
   it('should open a stream to the events endpoint for the key', () => {
-    subscribeToBook('key-1', {
-      onUpdate: vi.fn(),
-      eventSourceFactory: makeFactory(),
-    })
+    subscribeToBook('key-1', { onUpdate: vi.fn() })
 
     expect(FakeEventSource.instances[0]?.url).toContain('/api/v1/books/key-1/events')
   })
 
   it('should process one book update', () => {
     const onUpdate = vi.fn()
-    subscribeToBook('key-1', { onUpdate, eventSourceFactory: makeFactory() })
+    subscribeToBook('key-1', { onUpdate })
     const source = FakeEventSource.instances[0]!
 
     source.emit('book-updated', validDetail)
@@ -73,11 +45,7 @@ describe('subscribeToBook', () => {
   it('should report a malformed payload without calling onUpdate', () => {
     const onUpdate = vi.fn()
     const onError = vi.fn()
-    subscribeToBook('key-1', {
-      onUpdate,
-      onError,
-      eventSourceFactory: makeFactory(),
-    })
+    subscribeToBook('key-1', { onUpdate, onError })
     const source = FakeEventSource.instances[0]!
 
     source.emit('book-updated', { key: 'key-1' })
@@ -88,25 +56,16 @@ describe('subscribeToBook', () => {
   })
 
   it('should report a connection failure when EventSource construction throws', () => {
+    vi.stubGlobal('EventSource', ThrowingEventSource)
     const onError = vi.fn()
-    const throwingFactory = () => {
-      throw new Error('connection failed')
-    }
 
-    subscribeToBook('key-1', {
-      onUpdate: vi.fn(),
-      onError,
-      eventSourceFactory: throwingFactory,
-    })
+    subscribeToBook('key-1', { onUpdate: vi.fn(), onError })
 
     expect(onError).toHaveBeenCalledOnce()
   })
 
   it('should close the stream when the returned unsubscribe is called', () => {
-    const stop = subscribeToBook('key-1', {
-      onUpdate: vi.fn(),
-      eventSourceFactory: makeFactory(),
-    })
+    const stop = subscribeToBook('key-1', { onUpdate: vi.fn() })
     const source = FakeEventSource.instances[0]!
 
     stop()
@@ -114,7 +73,3 @@ describe('subscribeToBook', () => {
     expect(source.closed).toBe(true)
   })
 })
-
-function makeFactory() {
-  return (url: string) => new FakeEventSource(url) as unknown as EventSource
-}

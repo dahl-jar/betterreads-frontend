@@ -25,6 +25,9 @@ function renderAt(path: string, authenticated = false) {
         )
       : http.post(`${BASE}/refresh`, () => new HttpResponse(null, { status: 401 })),
     http.get('http://localhost:8080/api/v1/books', () => HttpResponse.json({ data: [] })),
+    http.get('http://localhost:8080/api/v1/books/count', () =>
+      HttpResponse.json({ data: { total: 0 } }),
+    ),
     http.get('http://localhost:8080/api/v1/me/books', () => HttpResponse.json({ data: [] })),
   )
   const router = createMemoryRouter(routes, { initialEntries: [path] })
@@ -47,7 +50,7 @@ describe('router', () => {
   it('should render the eager landing route synchronously', () => {
     renderAt('/')
 
-    expect(screen.getByRole('heading', { name: /find your/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: /search/i })).toBeInTheDocument()
   })
 
   it('should render one header', async () => {

@@ -209,6 +209,68 @@
     font-weight: 600;
     white-space: nowrap;
   }
+
+  .flip-number {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.07em;
+    perspective: 600px;
+    vertical-align: -0.08em;
+  }
+
+  .flip-digit {
+    position: relative;
+    display: inline-flex;
+    min-width: 0.78em;
+    height: 1.16em;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.14em;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgb(33 28 20 / 0.12);
+    transform-origin: 50% 0;
+    backface-visibility: hidden;
+  }
+
+  .flip-digit::after {
+    content: '';
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 1px;
+    background: var(--color-line);
+  }
+
+  .flip-digit[data-flip='true'] {
+    animation: flip-down 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .flip-separator {
+    padding: 0 0.04em;
+    color: var(--color-ink-soft);
+  }
+
+  @keyframes flip-down {
+    from {
+      transform: rotateX(-90deg);
+      opacity: 0;
+    }
+    40% {
+      opacity: 1;
+    }
+    to {
+      transform: rotateX(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flip-digit[data-flip='true'] {
+      animation: none;
+    }
+  }
 }
 
 /* Hides the native scrollbar on a strip that pages with its own controls, while

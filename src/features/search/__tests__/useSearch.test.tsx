@@ -1,7 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { FakeEventSource } from '@/testing/fakeEventSource'
 import { server } from '@/testing/msw-server'
 
 import { PAGE_SIZE, useSearch } from '../hooks/useSearch'
@@ -153,5 +154,56 @@ describe('useSearch', () => {
 
     releaseNextSearch()
     await waitFor(() => expect(result.current.status).toBe('success'))
+  })
+
+  describe('live hits', () => {
+    beforeEach(() => {
+      vi.stubGlobal('EventSource', FakeEventSource)
+    })
+
+    it('should append streamed hits and turn staging into success', async () => {
+      server.use(pageOf(0))
+      const { result } = renderHook(() => useSearch('an obscure title'))
+      await waitFor(() => expect(result.current.status).toBe('staging'))
+
+      FakeEventSource.instances[0]!.emit('search-hit', searchHit)
+      FakeEventSource.instances[0]!.emit('search-hit', { ...searchHit, bookId: 'second' })
+
+      await waitFor(() => expect(result.current.status).toBe('success'))
+      expect(result.current.hits.map((hit) => hit.bookId)).toEqual([searchHit.bookId, 'second'])
+    })
+
+    it('should ignore a streamed hit already in the results', async () => {
+      server.use(pageOf(1))
+      const { result } = renderHook(() => useSearch('dune'))
+      await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
+
+      FakeEventSource.instances[0]!.emit('search-hit', { ...searchHit, bookId: 'book-0' })
+
+      await waitFor(() => expect(result.current.status).toBe('success'))
+      expect(result.current.hits).toHaveLength(1)
+    })
+
+    it('should not open a stream for a later page', async () => {
+      server.use(pageOf(3 * PAGE_SIZE))
+
+      const { result } = renderHook(() => useSearch('dune', 2))
+
+      await waitFor(() => expect(result.current.status).toBe('success'))
+      expect(FakeEventSource.instances).toHaveLength(0)
+    })
+
+    it('should close the stream when the query changes', async () => {
+      server.use(pageOf(1))
+      const { result, rerender } = renderHook(({ query }) => useSearch(query), {
+        initialProps: { query: 'dune' },
+      })
+      await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
+
+      rerender({ query: 'mistborn' })
+
+      await waitFor(() => expect(result.current.status).toBe('success'))
+      expect(FakeEventSource.instances[0]?.closed).toBe(true)
+    })
   })
 })

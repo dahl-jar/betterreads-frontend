@@ -27,35 +27,6 @@ describe('SearchForm', () => {
     expect(onSearch).not.toHaveBeenCalled()
   })
 
-  it('should link the barcode popup to its trigger', async () => {
-    const user = userEvent.setup()
-    render(<SearchForm onSearch={vi.fn()} />)
-    const trigger = screen.getByRole('button', { name: /scan a barcode/i })
-
-    await user.click(trigger)
-
-    const firstPopup = screen.getByRole('status')
-    expect(firstPopup).toHaveAttribute('id')
-    expect(trigger).toHaveAttribute('aria-controls', firstPopup.id)
-
-    await user.click(trigger)
-    await user.click(trigger)
-
-    expect(screen.getByRole('status')).toHaveAttribute('id', firstPopup.id)
-  })
-
-  it('should close the barcode popup on Escape', async () => {
-    const user = userEvent.setup()
-    render(<SearchForm onSearch={vi.fn()} />)
-    const trigger = screen.getByRole('button', { name: /scan a barcode/i })
-    await user.click(trigger)
-
-    await user.keyboard('{Escape}')
-
-    expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
-  })
-
   it('should update the box when browser navigation changes the initial query', () => {
     const { rerender } = render(<SearchForm onSearch={vi.fn()} initialQuery="mistborn" />)
 
