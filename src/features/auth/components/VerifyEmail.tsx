@@ -61,19 +61,19 @@ export function VerifyEmail({ token }: VerifyEmailProps) {
 
   if (state === 'verifying') {
     return (
-      <p role="status" className="text-sm text-ink-soft">
+      <p role="status" className="text-sm text-fg-2">
         Verifying your email…
       </p>
     )
   }
 
   if (state === 'verified') {
-    return <p className="text-sm font-medium text-green">Email verified. You are all set.</p>
+    return <p className="text-sm font-medium text-read">Email verified. You are all set.</p>
   }
 
   if (resent) {
     return (
-      <p role="status" className="text-sm text-ink-soft">
+      <p role="status" className="text-sm text-fg-2">
         {RESEND_CONFIRMATION}
       </p>
     )

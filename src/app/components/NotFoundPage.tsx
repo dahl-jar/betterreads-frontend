@@ -31,15 +31,15 @@ export function NotFoundPage({ kind }: NotFoundPageProps) {
     <main className="mx-auto flex max-w-xl flex-1 flex-col items-center justify-center gap-5 px-6 py-20 text-center">
       <p
         aria-hidden="true"
-        className="font-display text-[7rem] font-bold leading-none text-green sm:text-[9rem]"
+        className="font-title text-[7rem] font-bold leading-none text-fg sm:text-[9rem]"
       >
         {kind === 'error' ? 'Oops' : '404'}
       </p>
-      <h1 className="font-display text-2xl font-semibold text-ink">{copy.title}</h1>
-      <p className="max-w-md text-ink-soft">{copy.description}</p>
+      <h1 className="font-title text-2xl text-fg">{copy.title}</h1>
+      <p className="max-w-md text-fg-2">{copy.description}</p>
       <Link
         to="/"
-        className="rounded-md bg-green px-5 py-2.5 text-sm font-semibold text-white no-underline hover:bg-green-deep"
+        className="rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent no-underline hover:bg-accent-hover"
       >
         Back to search
       </Link>

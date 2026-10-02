@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { AuthProvider } from '@/app/components/AuthProvider'
 import { clearAccessToken } from '@/lib/api/token'
 import auth from '@/testing/mocks/auth.json'
+import book from '@/testing/mocks/book.json'
+import noCommunityRating from '@/testing/mocks/no-community-rating.json'
 import { server } from '@/testing/msw-server'
 
 import { routes } from './router'
@@ -29,6 +31,7 @@ function renderAt(path: string, authenticated = false) {
       HttpResponse.json({ data: { total: 0 } }),
     ),
     http.get('http://localhost:8080/api/v1/me/books', () => HttpResponse.json({ data: [] })),
+    http.get('http://localhost:8080/api/v1/reviews/recent', () => HttpResponse.json({ data: [] })),
   )
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   render(
@@ -73,23 +76,16 @@ describe('router', () => {
 
   it('should title a loaded book', async () => {
     server.use(
-      http.get('http://localhost:8080/api/v1/books/OL1W', () =>
-        HttpResponse.json({
-          data: {
-            key: 'OL1W',
-            complete: true,
-            title: 'Hunters of Dune',
-            authors: ['Brian Herbert'],
-            subjects: [],
-            awards: [],
-          },
-        }),
-      ),
+      http.get('http://localhost:8080/api/v1/books/OL1W', () => HttpResponse.json({ data: book })),
       http.get('http://localhost:8080/api/v1/books/OL1W/reviews', () =>
         HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
       ),
       http.get('http://localhost:8080/api/v1/books/OL1W/community-rating', () =>
-        HttpResponse.json({ data: { average: null, count: 0, distribution: [] } }),
+        HttpResponse.json(noCommunityRating),
+      ),
+      http.get(
+        'http://localhost:8080/api/v1/books/OL1W/shelf-counts',
+        () => new HttpResponse(null, { status: 404 }),
       ),
     )
 
@@ -97,6 +93,19 @@ describe('router', () => {
 
     await screen.findByRole('heading', { name: 'Hunters of Dune' })
     await waitFor(() => expect(document.title).toMatch(/hunters of dune/i))
+  })
+
+  it('should show one search box on the search page', async () => {
+    server.use(
+      http.get('http://localhost:8080/api/v1/search/books', () =>
+        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 15 } }),
+      ),
+    )
+
+    renderAt('/search?q=dune')
+
+    await screen.findByRole('heading', { level: 1, name: 'Results for dune' })
+    expect(screen.getAllByRole('searchbox')).toHaveLength(1)
   })
 
   it('should name a missing book separately from an unmatched page', async () => {

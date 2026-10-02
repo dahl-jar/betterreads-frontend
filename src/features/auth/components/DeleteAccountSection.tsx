@@ -58,8 +58,8 @@ export function DeleteAccountSection({ onDeleted }: DeleteAccountSectionProps) {
 
   return (
     <section className="mt-10 rounded-md border border-destructive/40 p-5">
-      <h2 className="font-semibold text-ink">Delete account</h2>
-      <p className="mt-1 text-sm text-ink-soft">
+      <h2 className="font-semibold text-fg">Delete account</h2>
+      <p className="mt-1 text-sm text-fg-2">
         Deleting your account immediately disables it and signs out this browser. It cannot be
         restored. Another signed-in device may keep access for up to two hours. Your account,
         shelves, notes, reviews, ratings, comments, and replies are deleted from the live service
@@ -79,25 +79,25 @@ export function DeleteAccountSection({ onDeleted }: DeleteAccountSectionProps) {
       </Button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby={`${inputId}-title`}
-            className="w-full max-w-md rounded-lg border border-line bg-surface p-6 shadow-xl"
+            className="w-full max-w-md rounded-lg border border-rule bg-raised p-6 shadow-xl"
           >
-            <h3 id={`${inputId}-title`} className="font-display text-lg font-semibold text-ink">
+            <h3 id={`${inputId}-title`} className="font-title text-lg text-fg">
               Delete your account?
             </h3>
-            <p className="mt-2 text-sm text-ink-soft">
+            <p className="mt-2 text-sm text-fg-2">
               This immediately disables your account and signs out this browser. It cannot be
               restored. Another signed-in device may keep access for up to two hours. Your
               BetterReads account data is deleted from the live service after 30 days, and encrypted
               backups may retain it for about another 30 days.
             </p>
 
-            <label htmlFor={inputId} className="mt-4 block text-sm text-ink-soft">
-              Type <span className="font-semibold text-ink">{CONFIRM_WORD}</span> to confirm
+            <label htmlFor={inputId} className="mt-4 block text-sm text-fg-2">
+              Type <span className="font-semibold text-fg">{CONFIRM_WORD}</span> to confirm
             </label>
             <Input
               id={inputId}

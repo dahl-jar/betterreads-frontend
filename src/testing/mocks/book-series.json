@@ -1,0 +1,20 @@
+{
+  "name": "Red Rising Saga",
+  "position": 1,
+  "books": [
+    {
+      "key": "OL27W",
+      "title": "Golden Son",
+      "authors": ["Pierce Brown"],
+      "coverUrl": "https://covers.example/golden-son.jpg",
+      "position": 2
+    },
+    {
+      "key": "OL28W",
+      "title": "Morning Star",
+      "authors": ["Pierce Brown"],
+      "coverUrl": "https://covers.example/morning-star.jpg",
+      "position": 3
+    }
+  ]
+}

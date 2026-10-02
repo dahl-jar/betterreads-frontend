@@ -1,14 +1,13 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import shelfEntry from '@/testing/mocks/shelf-entry.json'
 import { server } from '@/testing/msw-server'
 
 import { changeFavorite } from '../api/changeFavorite'
 import { changeShelfStatus } from '../api/changeShelfStatus'
 import { getShelf } from '../api/getShelf'
 import { removeFromShelf } from '../api/removeFromShelf'
-
-import shelfEntry from './mocks/shelf-entry.json'
 
 const SHELF_URL = 'http://localhost:8080/api/v1/me/books'
 const DUNE_KEY = 'OL893415W'

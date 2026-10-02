@@ -35,7 +35,7 @@ export function groupBySeries(hits: BookSearchDocument[]): SearchGroup[] {
   return groups
 }
 
-function positionIn(hit: BookSearchDocument, seriesName: string): number | undefined {
+export function positionIn(hit: BookSearchDocument, seriesName: string): number | undefined {
   return seriesEntries(hit).find(({ name }) => name === seriesName)?.position
 }
 

@@ -20,15 +20,15 @@ export function ShowMoreText({
     return <p className={className}>{text}</p>
   }
 
-  const preview = expanded ? text : `${cutAtWord(text, collapsedChars)}…`
+  const shown = expanded ? text : `${cutAtWord(text, collapsedChars)}…`
 
   return (
     <div>
-      <p className={className}>{expanded ? text : preview}</p>
+      <p className={className}>{shown}</p>
       <button
         type="button"
         onClick={() => setExpanded((open) => !open)}
-        className="mt-1 text-sm font-semibold text-green hover:underline"
+        className="mt-1 text-sm font-semibold text-brand hover-mark"
         aria-expanded={expanded}
       >
         {expanded ? 'Show less' : 'Show more'}

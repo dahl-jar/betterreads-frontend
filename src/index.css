@@ -1,51 +1,59 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-paper: #faf6ee;
-  --color-surface: #ffffff;
-  --color-ink: #211c14;
-  --color-ink-soft: #6b6354;
-  --color-ink-faint: #9a917f;
-  --color-line: #e7dfd0;
-  --color-green: #2e5e45;
-  --color-green-deep: #234a36;
-  --color-green-soft: #e3ede6;
-  --color-rust: #c0552b;
+  --color-ground: #ffffff;
+  --color-raised: #ffffff;
+  --color-sunken: #f6f4f4;
+  --color-fg: #1c1c1c;
+  --color-fg-2: #5a5555;
+  --color-fg-3: #736d6d;
+  --color-rule: #e8e4e4;
+  --color-accent: #1c1c1c;
+  --color-accent-hover: #383838;
+  --color-on-accent: #ffffff;
+  --color-brand: #3c1517;
+  --color-brand-soft: #f3eaeb;
+  --color-star: #f0b429;
+  --color-danger: #b3261e;
+  --color-read: #26865a;
+  --color-dropped: #b3261e;
+  --color-flip-tile: #1d1c1b;
+  --color-flip-edge: #121110;
+  --color-flip-digit: #f1ede6;
 
-  --font-display: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
-  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-title: 'Libre Baskerville', Baskerville, 'Baskerville Old Face', Georgia, serif;
+  --font-ui:
+    'Source Sans 3 Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  --shadow-card: inset 4px 0 0 rgb(0 0 0 / 0.14), 0 1px 3px rgb(33 28 20 / 0.14);
-  --shadow-card-hover: 0 12px 20px rgb(33 28 20 / 0.18);
+  --shadow-cover: 0 1px 2px rgb(0 0 0 / 0.14), 0 10px 20px -10px rgb(0 0 0 / 0.35);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 14px 26px -16px rgb(0 0 0 / 0.28);
 }
 
 :root {
-  --radius: 0.5rem;
-  --background: #faf6ee;
-  --foreground: #211c14;
-  --card: #ffffff;
-  --card-foreground: #211c14;
-  --popover: #ffffff;
-  --popover-foreground: #211c14;
-  --primary: #2e5e45;
-  --primary-foreground: #faf6ee;
-  --secondary: #e3ede6;
-  --secondary-foreground: #211c14;
-  --muted: #f1ebdf;
-  --muted-foreground: #6b6354;
-  --accent: #c0552b;
-  --accent-foreground: #ffffff;
-  --destructive: #b3402a;
-  --destructive-foreground: #ffffff;
-  --border: #e7dfd0;
-  --input: #e7dfd0;
-  --ring: #2e5e45;
+  --radius: 0.375rem;
+  --background: var(--color-ground);
+  --foreground: var(--color-fg);
+  --card: var(--color-raised);
+  --card-foreground: var(--color-fg);
+  --popover: var(--color-raised);
+  --popover-foreground: var(--color-fg);
+  --primary: var(--color-accent);
+  --primary-foreground: var(--color-on-accent);
+  --secondary: var(--color-sunken);
+  --secondary-foreground: var(--color-fg);
+  --muted: var(--color-sunken);
+  --muted-foreground: var(--color-fg-2);
+  --destructive: var(--color-danger);
+  --destructive-foreground: var(--color-on-accent);
+  --border: var(--color-rule);
+  --input: var(--color-rule);
+  --ring: var(--color-fg-2);
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -58,8 +66,6 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -69,9 +75,9 @@
 
 @layer base {
   html {
-    background-color: var(--color-paper);
-    color: var(--color-ink);
-    font-family: var(--font-body);
+    background-color: var(--color-ground);
+    color: var(--color-fg);
+    font-family: var(--font-ui);
     font-size: 15px;
     line-height: 1.55;
   }
@@ -89,11 +95,14 @@
     cursor: pointer;
   }
 
-  /* The root font is 15px, so a 1rem input is below iOS Safari's 16px zoom
-     threshold and the page zooms in on focus, then keeps the zoom across SPA
-     navigation. Pin form controls to 16px. Keep this in base, not utilities,
-     and do not put a text-* class on an input: a utility would beat this rule
-     and bring the zoom back. */
+  :where(a, button, [role='tab'], [role='menuitem'], [role='menuitemradio']):focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  /* The root font is 15px, so a 1rem input falls under iOS Safari's 16px zoom
+     threshold and the page zooms in on focus. Form controls are 16px in the
+     base layer, where a text-* utility on an input would override it. */
   input,
   textarea,
   select {
@@ -102,136 +111,101 @@
 }
 
 @layer components {
-  /* Shared body styling for the static content pages (Help, Privacy, Cookies,
-     Terms, About). Each page passes plain h2/p/a markup with no per-section
-     wrapper, so the structure is built from the heading itself: the whole
-     block is one editorial panel, and every h2 acts as a section header with a
-     green accent rule and a divider above it. Following paragraphs are indented
-     to the same inset so each h2-led section reads as a unit. Works for both
-     FAQ-style pages (Help opens on an h2) and prose pages (About/Privacy/Terms/
-     Cookies open on a lead paragraph). */
+  /* Static pages pass plain h2/p/a markup, so each h2 opens a section with a
+     divider above it. */
   .static-content {
-    --static-inset: 1.25rem;
-
-    border: 1px solid var(--color-line);
-    border-radius: 1rem;
-    background-color: var(--color-surface);
-    padding: 2.5rem 2.75rem;
-    color: var(--color-ink-soft);
+    max-width: 68ch;
+    color: var(--color-fg-2);
     font-size: 1.0625rem;
     line-height: 1.75;
-    box-shadow:
-      0 1px 2px rgb(33 28 20 / 0.04),
-      0 10px 30px -18px rgb(33 28 20 / 0.22);
   }
 
   .static-content > * + * {
     margin-top: 1.05rem;
   }
 
-  /* Every body paragraph sits at the section inset so the green accent groups
-     each heading with its answer. */
-  .static-content p {
-    padding-left: var(--static-inset);
-  }
-
-  /* Lead paragraph: the one that opens the panel before any heading. It has no
-     accent heading above it, so it runs flush to the panel edge and reads as an
-     intro lede, slightly larger and in full ink. */
+  /* Lead paragraph: the one that opens the page before any heading. */
   .static-content > p:first-child {
-    padding-left: 0;
-    color: var(--color-ink);
+    color: var(--color-fg);
     font-size: 1.1875rem;
     line-height: 1.7;
   }
 
-  /* The divider rule that separates each section sits in the margin above the
-     heading, and the green accent bar hugs the heading text only (a tight
-     top/bottom padding keeps the bar from running through the divider gap). */
   .static-content h2 {
-    position: relative;
-    margin-top: 3rem;
-    padding: 0.1rem 0 0.1rem var(--static-inset);
-    border-left: 3px solid var(--color-green);
-    color: var(--color-ink);
-    font-family: var(--font-display);
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--color-rule);
+    padding-top: 1.75rem;
+    color: var(--color-fg);
+    font-family: var(--font-title);
     font-size: 1.375rem;
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.3;
-    letter-spacing: -0.01em;
     scroll-margin-top: 1.5rem;
   }
 
-  .static-content h2::before {
-    content: '';
-    position: absolute;
-    top: -1.5rem;
-    left: calc(-1 * var(--static-inset));
-    width: calc(100% + var(--static-inset));
-    border-top: 1px solid var(--color-line);
-  }
-
-  /* The first heading on an FAQ-style page (Help) opens the panel with no lead
+  /* The first heading on an FAQ-style page (Help) opens the page with no lead
      paragraph above it, so it carries no divider and no extra top gap. */
   .static-content > h2:first-child {
     margin-top: 0;
+    border-top: 0;
+    padding-top: 0;
   }
 
-  .static-content > h2:first-child::before {
-    content: none;
-  }
-
-  /* Tighten the gap between a heading and its first paragraph so the section
-     reads as one block rather than two evenly spaced rows. */
   .static-content h2 + p {
     margin-top: 0.85rem;
   }
 
   .static-content a {
-    color: var(--color-green);
-    font-weight: 500;
-    text-decoration: none;
-  }
-
-  .static-content a:hover {
-    color: var(--color-green-deep);
+    color: var(--color-brand);
+    font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 2px;
   }
 
-  /* The contact address is shown as plain text to copy, not a link, so it gets
-     a soft green pill to stand out from the surrounding sentence. */
+  .static-content a:hover {
+    color: var(--color-fg);
+  }
+
+  /* The contact address is plain text for copying. */
   .static-content .contact-email {
     border-radius: 0.375rem;
-    background-color: var(--color-green-soft);
+    background-color: var(--color-brand-soft);
     padding: 0.1rem 0.4rem;
-    color: var(--color-green-deep);
+    color: var(--color-brand);
     font-weight: 600;
     white-space: nowrap;
   }
 
+  /* The live book count, drawn as a split-flap board and centred on the
+     headline text around it. */
   .flip-number {
+    position: relative;
+    top: -0.04em;
     display: inline-flex;
     align-items: center;
-    gap: 0.07em;
+    gap: 0.06em;
     perspective: 600px;
-    vertical-align: -0.08em;
+    vertical-align: middle;
   }
 
   .flip-digit {
     position: relative;
     display: inline-flex;
-    min-width: 0.78em;
-    height: 1.16em;
+    min-width: 0.8em;
+    height: 1.24em;
     align-items: center;
     justify-content: center;
-    border-radius: 0.14em;
-    border: 1px solid var(--color-line);
-    background: var(--color-surface);
-    color: var(--color-ink);
+    border: 1px solid var(--color-flip-edge);
+    border-radius: 0.09em;
+    background: var(--color-flip-tile);
+    color: var(--color-flip-digit);
+    font-family: var(--font-ui);
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
-    box-shadow: 0 1px 2px rgb(33 28 20 / 0.12);
+    box-shadow:
+      0 0.06em 0 var(--color-flip-edge),
+      0 0.3em 0.5em -0.2em rgb(0 0 0 / 0.6);
     transform-origin: 50% 0;
     backface-visibility: hidden;
   }
@@ -240,8 +214,8 @@
     content: '';
     position: absolute;
     inset: 50% 0 auto 0;
-    height: 1px;
-    background: var(--color-line);
+    height: 2px;
+    background: var(--color-flip-edge);
   }
 
   .flip-digit[data-flip='true'] {
@@ -250,7 +224,7 @@
 
   .flip-separator {
     padding: 0 0.04em;
-    color: var(--color-ink-soft);
+    color: var(--color-fg-3);
   }
 
   @keyframes flip-down {
@@ -266,10 +240,86 @@
     }
   }
 
+  .stamp {
+    display: inline-block;
+    border: 2px solid currentColor;
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem 0.15rem;
+    font-family: var(--font-ui);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+    opacity: 0.88;
+    transform: rotate(-5deg);
+  }
+
+  .stamp[data-fresh='true'] {
+    animation: stamp-press 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes stamp-press {
+    from {
+      transform: rotate(-5deg) scale(1.7);
+      opacity: 0;
+    }
+    to {
+      transform: rotate(-5deg) scale(1);
+      opacity: 0.88;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .flip-digit[data-flip='true'] {
+    .flip-digit[data-flip='true'],
+    .stamp[data-fresh='true'] {
       animation: none;
     }
+  }
+}
+
+@utility label-caps {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-fg-3);
+}
+
+@utility hover-mark {
+  border-radius: 0.2em;
+  transition:
+    background-color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    color 150ms ease-out;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-brand-soft);
+    box-shadow: 0 0 0 0.25em var(--color-brand-soft);
+    color: var(--color-brand);
+  }
+}
+
+@utility catalogue-card {
+  position: relative;
+  border: 1px solid var(--color-rule);
+  border-radius: 3px;
+  background-color: var(--color-raised);
+  padding: 1.25rem 1.25rem 2.5rem;
+  box-shadow: var(--shadow-card);
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0.75rem;
+    left: 50%;
+    width: 0.75rem;
+    height: 0.75rem;
+    transform: translateX(-50%);
+    border: 1px solid var(--color-rule);
+    border-radius: 9999px;
+    background-color: var(--color-sunken);
   }
 }
 

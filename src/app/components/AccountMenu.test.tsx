@@ -28,6 +28,15 @@ describe('AccountMenu', () => {
     expect(screen.getByRole('menuitem', { name: /log out/i })).toBeInTheDocument()
   })
 
+  it("should link to the reader's books", async () => {
+    stubSignedIn()
+    const { user } = renderWithProviders(<AccountMenu username="darrow" />)
+
+    await user.click(await screen.findByRole('button', { name: /account menu/i }))
+
+    expect(screen.getByRole('menuitem', { name: 'My books' })).toHaveAttribute('href', '/shelf')
+  })
+
   it('should log out when log out is chosen', async () => {
     stubSignedIn()
     let loggedOut = false
@@ -51,6 +60,21 @@ describe('AccountMenu', () => {
 
     await user.click(await screen.findByRole('button', { name: /account menu/i }))
     await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('menuitem', { name: /log out/i })).toBeNull()
+  })
+
+  it('should close the menu on a press outside it', async () => {
+    stubSignedIn()
+    const { user } = renderWithProviders(
+      <>
+        <AccountMenu username="darrow" />
+        <p>Elsewhere on the page</p>
+      </>,
+    )
+    await user.click(await screen.findByRole('button', { name: /account menu/i }))
+
+    await user.click(screen.getByText('Elsewhere on the page'))
 
     expect(screen.queryByRole('menuitem', { name: /log out/i })).toBeNull()
   })

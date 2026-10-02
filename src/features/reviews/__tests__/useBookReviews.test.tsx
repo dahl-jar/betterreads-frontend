@@ -9,11 +9,10 @@ import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedIn, stubSignedOut } from '@/testing/authHandlers'
 import auth from '@/testing/mocks/auth.json'
+import review from '@/testing/mocks/review.json'
 import { server } from '@/testing/msw-server'
 
 import { useBookReviews } from '../hooks/useBookReviews'
-
-import review from './mocks/review.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 const AUTH_BASE = `${BASE}/auth`

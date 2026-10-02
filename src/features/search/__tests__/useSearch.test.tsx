@@ -3,11 +3,10 @@ import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { FakeEventSource } from '@/testing/fakeEventSource'
+import searchHit from '@/testing/mocks/search-hit.json'
 import { server } from '@/testing/msw-server'
 
 import { PAGE_SIZE, useSearch } from '../hooks/useSearch'
-
-import searchHit from './mocks/search-hit.json'
 
 const SEARCH_URL = 'http://localhost:8080/api/v1/search/books'
 

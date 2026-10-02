@@ -53,7 +53,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         Log in
       </Button>
       <p className="text-left text-sm">
-        <Link to="/forgot-password" className="font-semibold text-green">
+        <Link to="/forgot-password" className="font-semibold text-brand">
           Forgot password?
         </Link>
       </p>

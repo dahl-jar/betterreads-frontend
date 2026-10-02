@@ -1,0 +1,14 @@
+{
+  "id": 7,
+  "author": "mustang",
+  "rating": 5,
+  "title": "Break the chains",
+  "body": "The gala chapter alone earns the stars.",
+  "createdAt": "2026-06-01",
+  "book": {
+    "key": "OL27W",
+    "title": "Golden Son",
+    "authors": ["Pierce Brown"],
+    "coverUrl": "https://covers.example/golden-son.jpg"
+  }
+}

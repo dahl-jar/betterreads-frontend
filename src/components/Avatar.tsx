@@ -1,16 +1,18 @@
+import { initialOf } from '@/lib/initialOf'
+
 type AvatarProps = {
   name: string
   url?: string | null | undefined
-  size?: 'sm' | 'md'
+  size?: 'xs' | 'sm' | 'md'
 }
 
 const SIZES = {
+  xs: 'h-6 w-6 text-[0.6875rem]',
   sm: 'h-8 w-8 text-xs',
   md: 'h-9 w-9 text-sm',
 } as const
 
 export function Avatar({ name, url, size = 'md' }: AvatarProps) {
-  const initial = name.trim() === '' ? '?' : name.trim().charAt(0).toUpperCase()
   const dimensions = SIZES[size]
 
   if (url) {
@@ -18,7 +20,7 @@ export function Avatar({ name, url, size = 'md' }: AvatarProps) {
       <img
         src={url}
         alt=""
-        className={`${dimensions} shrink-0 rounded-full border border-line object-cover`}
+        className={`${dimensions} shrink-0 rounded-full border border-rule object-cover`}
       />
     )
   }
@@ -26,9 +28,9 @@ export function Avatar({ name, url, size = 'md' }: AvatarProps) {
   return (
     <span
       aria-hidden="true"
-      className={`${dimensions} flex shrink-0 items-center justify-center rounded-full border border-green/15 bg-green-soft font-semibold text-green-deep`}
+      className={`${dimensions} flex shrink-0 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand`}
     >
-      {initial}
+      {initialOf(name)}
     </span>
   )
 }

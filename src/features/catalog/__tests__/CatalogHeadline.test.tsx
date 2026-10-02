@@ -15,7 +15,7 @@ describe('CatalogHeadline', () => {
     render(<CatalogHeadline />)
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: /Search 12,345 books/ }),
+      await screen.findByRole('heading', { level: 1, name: /Search across 12,345 books/ }),
     ).toBeVisible()
   })
 

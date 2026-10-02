@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom'
 
+import { BookCover } from '@/components/BookCover'
+import { GenreBadge } from '@/components/GenreBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { SearchStatus } from '@/features/search/hooks/useSearch'
-import { groupBySeries } from '@/features/search/lib/groupBySeries'
+import { groupBySeries, positionIn } from '@/features/search/lib/groupBySeries'
+import { formatAuthors } from '@/lib/formatAuthors'
 import { uniqueSubjects } from '@/lib/subjects'
 
 import type { BookSearchDocument } from '../api/searchBooks'
@@ -13,26 +16,13 @@ type SearchResultsProps = {
   query: string
 }
 
-function BookCover({ coverUrl, title }: { coverUrl?: string | undefined; title: string }) {
-  if (coverUrl === undefined) {
-    return (
-      <div
-        aria-hidden="true"
-        className="flex h-[72px] w-12 shrink-0 items-center justify-center rounded border border-line bg-muted/40 text-lg font-semibold text-ink-faint"
-      >
-        {title.charAt(0).toUpperCase()}
-      </div>
-    )
-  }
-  return (
-    <img
-      src={coverUrl}
-      alt=""
-      loading="lazy"
-      className="h-[72px] w-12 shrink-0 rounded border border-line object-cover"
-    />
-  )
+type BookRowProps = {
+  hit: BookSearchDocument
+  position?: number | undefined
 }
+
+const SKELETON_COUNT = 4
+const SHOWN_GENRES = 4
 
 export function SearchResults({ status, hits, query }: SearchResultsProps) {
   if (status === 'idle') {
@@ -47,7 +37,7 @@ export function SearchResults({ status, hits, query }: SearchResultsProps) {
         aria-label="Loading search results"
         aria-busy="true"
       >
-        {Array.from({ length: 4 }).map((_, index) => (
+        {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
           <li key={index}>
             <Skeleton className="h-16" />
           </li>
@@ -58,7 +48,7 @@ export function SearchResults({ status, hits, query }: SearchResultsProps) {
 
   if (status === 'error') {
     return (
-      <p role="alert" className="mt-3 text-sm text-ink-soft">
+      <p role="alert" className="mt-3 text-sm text-fg-2">
         Something went wrong searching. Try again in a moment.
       </p>
     )
@@ -66,12 +56,12 @@ export function SearchResults({ status, hits, query }: SearchResultsProps) {
 
   if (status === 'staging') {
     return (
-      <div role="status" className="mt-3 space-y-1 text-sm text-ink-soft">
+      <div role="status" className="mt-3 space-y-1 text-sm text-fg-2">
         <p>
-          No match for <span className="font-semibold text-ink">{query}</span> yet. We&apos;re
+          No match for <span className="font-semibold text-fg">{query}</span> yet. We&apos;re
           checking our sources for it now.
         </p>
-        <p className="text-ink-faint">
+        <p className="text-fg-3">
           If a complete copy turns up, it&apos;ll appear here on a later search. Some books
           aren&apos;t in our sources, or only show up with missing details, and those we can&apos;t
           list.
@@ -81,59 +71,71 @@ export function SearchResults({ status, hits, query }: SearchResultsProps) {
   }
 
   return (
-    <div className="divide-y divide-line">
+    <div className="mt-2">
       {groupBySeries(hits).map((group) =>
         group.kind === 'series' ? (
-          <section key={`series:${group.seriesName}`} className="py-3">
-            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-              {group.seriesName} series
-            </h3>
-            <ul className="border-l border-line pl-4">
+          <section key={`series:${group.seriesName}`} className="mt-7">
+            <div className="flex items-end gap-3 border-b-2 border-accent">
+              <h3 className="rounded-t-[4px] bg-accent px-3 pb-0.5 pt-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-on-accent">
+                {group.seriesName}
+              </h3>
+              <span className="pb-1 text-xs text-fg-3">
+                {group.books.length === 1 ? '1 book' : `${group.books.length} books`}
+              </span>
+            </div>
+            <ul className="mt-1.5">
               {group.books.map((book) => (
                 <li key={book.bookId}>
-                  <BookRow hit={book} />
+                  <BookRow hit={book} position={positionIn(book, group.seriesName)} />
                 </li>
               ))}
             </ul>
           </section>
         ) : (
-          <BookRow key={group.book.bookId} hit={group.book} />
+          <div key={group.book.bookId} className="mt-1.5">
+            <BookRow hit={group.book} />
+          </div>
         ),
       )}
     </div>
   )
 }
 
-function BookRow({ hit }: { hit: BookSearchDocument }) {
+function BookRow({ hit, position }: BookRowProps) {
   return (
-    <Link to={`/books/${hit.bookId}`} className="flex gap-4 py-4 no-underline group">
-      <BookCover coverUrl={hit.coverUrl ?? undefined} title={hit.title} />
+    <Link
+      to={`/books/${hit.bookId}`}
+      className="flex items-center gap-4 rounded-[3px] px-3 py-2.5 no-underline hover:bg-sunken"
+    >
+      <BookCover
+        coverUrl={hit.coverUrl}
+        title={hit.title}
+        className="h-[4.5rem] w-12 shrink-0 rounded-[2px] shadow-cover"
+      />
       <div className="min-w-0 flex-1">
-        <p className="font-display text-lg font-semibold text-ink group-hover:text-green">
-          {hit.title}
-        </p>
-        {hit.subtitle ? <p className="text-sm text-ink-soft">{hit.subtitle}</p> : null}
-        <p className="mt-0.5 text-sm text-ink-soft">
-          {hit.authors.length > 0 ? `by ${hit.authors.join(', ')}` : 'Author unknown'}
+        <p className="truncate font-title text-lg text-fg">{hit.title}</p>
+        <p className="flex min-w-0 text-sm text-fg-2">
+          <span className="max-w-[42ch] truncate">{formatAuthors(hit.authors)}</span>
           {hit.publicationYear ? (
-            <span className="text-ink-faint"> · {hit.publicationYear}</span>
+            <span className="shrink-0">&nbsp;· {hit.publicationYear}</span>
           ) : null}
         </p>
         {hit.subjects.length > 0 ? (
           <p className="mt-1.5 flex flex-wrap gap-1.5">
             {uniqueSubjects(hit.subjects)
-              .slice(0, 4)
+              .slice(0, SHOWN_GENRES)
               .map((subject) => (
-                <span
-                  key={subject}
-                  className="rounded border border-line px-2 py-0.5 text-xs text-ink-faint"
-                >
-                  {subject}
-                </span>
+                <GenreBadge key={subject} label={subject} />
               ))}
           </p>
         ) : null}
       </div>
+      {position === undefined ? null : (
+        <>
+          {' '}
+          <span className="shrink-0 text-xs text-fg-3">Book {position}</span>
+        </>
+      )}
     </Link>
   )
 }

@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { FakeEventSource } from '@/testing/fakeEventSource'
+import searchHit from '@/testing/mocks/search-hit.json'
 
 import { subscribeToSearchHits } from '../api/subscribeToSearchHits'
-
-import searchHit from './mocks/search-hit.json'
 
 describe('subscribeToSearchHits', () => {
   beforeEach(() => {

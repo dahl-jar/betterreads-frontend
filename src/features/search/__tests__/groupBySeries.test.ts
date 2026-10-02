@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
+import searchHit from '@/testing/mocks/search-hit.json'
+
 import type { BookSearchDocument } from '../api/searchBooks'
 import { groupBySeries } from '../lib/groupBySeries'
-
-import searchHit from './mocks/search-hit.json'
 
 function book(overrides: Partial<BookSearchDocument>): BookSearchDocument {
   return {

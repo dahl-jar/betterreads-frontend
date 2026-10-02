@@ -1,16 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import {
+  ChevronDownIcon,
+  DroppedIcon,
+  HeartIcon,
+  ReadIcon,
+  ReadingIcon,
+  RemoveIcon,
+  WantIcon,
+} from '@/components/icons'
 import { useAuth } from '@/hooks/useAuth'
+import { type DismissReason, useDismiss } from '@/hooks/useDismiss'
 
 import { changeFavorite } from '../api/changeFavorite'
 import { changeShelfStatus } from '../api/changeShelfStatus'
 import { getShelfEntry } from '../api/getShelfEntry'
 import { removeFromShelf as removeFromShelfRequest } from '../api/removeFromShelf'
 import { type ReadingStatus, type ShelfEntry } from '../api/shelfSchemas'
+import { READING_STATUS_LABELS } from '../utils/readingStatusLabels'
 
 type ShelfControlProps = {
   bookKey: string
+  onEntryChange?: (entry: ShelfEntry | undefined) => void
 }
 
 type ShelfControlState = {
@@ -20,20 +32,51 @@ type ShelfControlState = {
   failed: boolean
 }
 
-const STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
-  { value: 'WANT_TO_READ', label: 'Want to read' },
-  { value: 'CURRENTLY_READING', label: 'Currently reading' },
-  { value: 'FINISHED', label: 'Read' },
-  { value: 'DROPPED', label: 'Dropped' },
+type StatusOption = {
+  value: ReadingStatus
+  Icon: typeof WantIcon
+  iconClass: string
+  buttonClass: string
+  menuClass: string
+}
+
+const STATUS_OPTIONS: StatusOption[] = [
+  {
+    value: 'WANT_TO_READ',
+    Icon: WantIcon,
+    iconClass: 'text-fg',
+    buttonClass: 'border-fg bg-raised text-fg hover:bg-sunken',
+    menuClass: 'border-fg',
+  },
+  {
+    value: 'CURRENTLY_READING',
+    Icon: ReadingIcon,
+    iconClass: 'text-brand',
+    buttonClass: 'border-brand bg-brand text-on-accent hover:brightness-110',
+    menuClass: 'border-brand',
+  },
+  {
+    value: 'FINISHED',
+    Icon: ReadIcon,
+    iconClass: 'text-read',
+    buttonClass: 'border-read bg-read text-white hover:brightness-110',
+    menuClass: 'border-read',
+  },
+  {
+    value: 'DROPPED',
+    Icon: DroppedIcon,
+    iconClass: 'text-dropped',
+    buttonClass: 'border-dropped bg-dropped text-white hover:brightness-110',
+    menuClass: 'border-dropped',
+  },
 ]
 
 const DEFAULT_STATUS: ReadingStatus = 'WANT_TO_READ'
+const UNSHELVED_BUTTON_CLASS = 'border-accent bg-accent text-on-accent hover:bg-accent-hover'
+const UNSHELVED_MENU_CLASS = 'border-accent'
+const STATUS_ICON_CLASS = 'size-[1.125rem] shrink-0'
 
-function labelFor(status: ReadingStatus): string {
-  return STATUS_OPTIONS.find((option) => option.value === status)?.label ?? 'Want to read'
-}
-
-export function ShelfControl({ bookKey }: ShelfControlProps) {
+export function ShelfControl({ bookKey, onEntryChange }: ShelfControlProps) {
   const { status: authStatus, user } = useAuth()
   const identity = `${authStatus}:${user?.username ?? ''}:${bookKey}`
   const [state, setState] = useState<ShelfControlState>({
@@ -45,15 +88,28 @@ export function ShelfControl({ bookKey }: ShelfControlProps) {
   const [pendingIdentity, setPendingIdentity] = useState<string | undefined>(undefined)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
   const current =
     state.identity === identity
       ? state
       : { identity, entry: undefined, ready: false, failed: false }
   const { entry, ready, failed } = current
   const pending = pendingIdentity === identity
+  const reportEntry = useEffectEvent((shelfEntry: ShelfEntry | undefined) =>
+    onEntryChange?.(shelfEntry),
+  )
+  const shownIdentity = useRef(identity)
 
   useEffect(() => {
-    if (authStatus !== 'authenticated') {
+    shownIdentity.current = identity
+  }, [identity])
+
+  useEffect(() => {
+    if (authStatus === 'loading') {
+      return
+    }
+    if (authStatus === 'anonymous') {
+      reportEntry(undefined)
       return
     }
     const controller = new AbortController()
@@ -61,36 +117,33 @@ export function ShelfControl({ bookKey }: ShelfControlProps) {
       .then((existing) => {
         if (!controller.signal.aborted) {
           setState({ identity, entry: existing, ready: true, failed: false })
+          reportEntry(existing)
         }
       })
       .catch(() => {
         if (!controller.signal.aborted) {
           setState({ identity, entry: undefined, ready: false, failed: true })
+          reportEntry(undefined)
         }
       })
     return () => controller.abort()
   }, [authStatus, bookKey, identity])
 
-  useEffect(() => {
-    if (!menuOpen) {
-      return
+  const closeMenu = useCallback((reason: DismissReason) => {
+    setMenuOpen(false)
+    if (reason === 'escape') {
+      menuButtonRef.current?.focus()
     }
-    const onPointerDown = (event: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [menuOpen])
+  }, [])
+  useDismiss(menuRef, menuOpen, closeMenu)
 
   if (authStatus !== 'authenticated') {
     return (
       <Link
         to="/login"
-        className="block w-full rounded-md border border-green px-4 py-2.5 text-center text-sm font-semibold text-green hover:bg-green-soft"
+        className="block w-full rounded-md bg-accent px-5 py-2.5 text-center text-sm font-semibold text-on-accent hover:bg-accent-hover"
       >
-        Sign in to track this book
+        Log in to track this book
       </Link>
     )
   }
@@ -101,6 +154,9 @@ export function ShelfControl({ bookKey }: ShelfControlProps) {
     try {
       const updated = await operation()
       setState({ identity, entry: updated, ready: true, failed: false })
+      if (shownIdentity.current === identity) {
+        onEntryChange?.(updated)
+      }
     } catch {
       setState({ ...current, failed: true })
     } finally {
@@ -114,7 +170,7 @@ export function ShelfControl({ bookKey }: ShelfControlProps) {
   }
 
   async function toggleFavorite() {
-    await updateShelf(() => changeFavorite(bookKey, !(entry?.favorite ?? false)))
+    await updateShelf(() => changeFavorite(bookKey, !favorite))
   }
 
   async function removeFromShelf() {
@@ -126,67 +182,98 @@ export function ShelfControl({ bookKey }: ShelfControlProps) {
   }
 
   const busy = pending || !ready
-  const shelved = entry !== undefined
-  const primaryLabel = shelved ? labelFor(entry.status) : 'Want to read'
-  const faceColor = shelved
-    ? 'border border-green bg-green-soft text-green-deep hover:bg-green hover:text-white'
-    : 'bg-green text-white hover:bg-green-deep'
+  const applied = STATUS_OPTIONS.find((option) => option.value === entry?.status)
+  const favorite = entry?.favorite ?? false
+  const buttonClass = applied?.buttonClass ?? UNSHELVED_BUTTON_CLASS
+  const menuClass = applied?.menuClass ?? UNSHELVED_MENU_CLASS
 
   return (
     <div className="flex flex-col gap-2">
-      <div ref={menuRef} className="relative">
-        <div className="flex">
-          <button
-            type="button"
-            onClick={() => void chooseStatus(entry?.status ?? DEFAULT_STATUS)}
-            disabled={busy}
-            className={`flex flex-1 items-center gap-1.5 rounded-l-md border-r-0 px-4 py-2.5 text-left text-sm font-semibold disabled:opacity-50 ${faceColor}`}
-          >
-            {shelved ? <span aria-hidden="true">✓</span> : null}
-            {primaryLabel}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            disabled={busy}
-            aria-label="Choose shelf"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            className={`rounded-r-md px-3 py-2.5 disabled:opacity-50 ${faceColor}`}
-          >
-            <span aria-hidden="true">▾</span>
-          </button>
+      <div ref={menuRef} className="relative w-full">
+        <div
+          className={`flex overflow-hidden border ${menuOpen ? 'rounded-t-md' : 'rounded-md'} ${buttonClass} ${busy ? 'pointer-events-none opacity-50' : ''}`}
+        >
+          {applied ? (
+            <button
+              ref={menuButtonRef}
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              disabled={busy}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              className="flex flex-1 items-center gap-2 py-2.5 pl-4 pr-3 text-left text-sm font-semibold -outline-offset-2"
+            >
+              <applied.Icon className={STATUS_ICON_CLASS} />
+              <span className="flex-1">{READING_STATUS_LABELS[applied.value]}</span>
+              <ChevronDownIcon className="size-4" />
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => void chooseStatus(DEFAULT_STATUS)}
+                disabled={busy}
+                className="flex flex-1 items-center gap-2 py-2.5 pl-4 pr-3 text-left text-sm font-semibold -outline-offset-2"
+              >
+                <WantIcon className={STATUS_ICON_CLASS} />
+                {READING_STATUS_LABELS[DEFAULT_STATUS]}
+              </button>
+              <button
+                ref={menuButtonRef}
+                type="button"
+                onClick={() => setMenuOpen((open) => !open)}
+                disabled={busy}
+                aria-label="Choose shelf"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                className="border-l border-on-accent/25 px-3 -outline-offset-2"
+              >
+                <ChevronDownIcon className="size-4" />
+              </button>
+            </>
+          )}
         </div>
 
         {menuOpen ? (
           <div
             role="menu"
-            className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-line bg-surface shadow-card"
+            aria-label="Reading status"
+            className={`absolute inset-x-0 top-full z-20 rounded-b-md border border-t-0 bg-raised p-1.5 shadow-lg ${menuClass}`}
           >
             {STATUS_OPTIONS.map((option) => {
-              const active = entry?.status === option.value
+              const selected = option === applied
               return (
                 <button
                   key={option.value}
                   type="button"
-                  role="menuitem"
+                  role="menuitemradio"
+                  aria-checked={selected}
                   onClick={() => void chooseStatus(option.value)}
-                  className="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-ink hover:bg-green-soft"
+                  className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-fg hover:bg-sunken ${selected ? 'bg-sunken font-semibold' : ''}`}
                 >
-                  {option.label}
-                  {active ? <span className="text-green">✓</span> : null}
+                  <option.Icon className={`${STATUS_ICON_CLASS} ${option.iconClass}`} />
+                  <span className="flex-1">{READING_STATUS_LABELS[option.value]}</span>
+                  <span
+                    aria-hidden="true"
+                    className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${selected ? `border-current ${option.iconClass}` : 'border-fg-3'}`}
+                  >
+                    {selected ? <span className="size-2 rounded-full bg-current" /> : null}
+                  </span>
                 </button>
               )
             })}
-            {shelved ? (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => void removeFromShelf()}
-                className="w-full border-t border-line px-4 py-2 text-left text-sm text-destructive hover:bg-muted"
-              >
-                Remove from shelf
-              </button>
+            {applied ? (
+              <div className="mt-1.5 border-t border-rule pt-1.5">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void removeFromShelf()}
+                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-fg hover:bg-sunken"
+                >
+                  <RemoveIcon className={`${STATUS_ICON_CLASS} text-fg-2`} />
+                  Remove from shelf
+                </button>
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -196,18 +283,18 @@ export function ShelfControl({ bookKey }: ShelfControlProps) {
         type="button"
         onClick={() => void toggleFavorite()}
         disabled={busy}
-        aria-pressed={entry?.favorite ?? false}
-        className="flex items-center justify-center gap-1.5 rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink-soft hover:bg-muted disabled:opacity-50"
+        aria-pressed={favorite}
+        className={`flex items-center justify-center gap-2 rounded-md border border-rule px-4 py-2.5 text-sm font-semibold hover:border-fg-3 hover:text-fg disabled:opacity-50 ${favorite ? 'text-fg' : 'text-fg-2'}`}
       >
-        <span className={entry?.favorite ? 'text-rust' : ''} aria-hidden="true">
-          {entry?.favorite ? '★' : '☆'}
-        </span>
-        {entry?.favorite ? 'Favorite' : 'Add to favorites'}
+        <HeartIcon className={`size-4 ${favorite ? 'text-danger' : ''}`} filled={favorite} />
+        {favorite ? 'Favorite' : 'Add to favorites'}
       </button>
 
       {failed ? (
         <p role="alert" className="text-sm text-destructive">
-          Could not save your shelf. Try again.
+          {ready
+            ? 'Could not save your shelf. Try again.'
+            : 'Could not load your shelf. Reload the page.'}
         </p>
       ) : null}
     </div>

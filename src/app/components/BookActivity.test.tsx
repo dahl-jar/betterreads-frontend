@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedOut as stubAnonymousSession } from '@/testing/authHandlers'
+import review from '@/testing/mocks/review.json'
 import { server } from '@/testing/msw-server'
 import { renderWithProviders, screen } from '@/testing/test-utils'
 
@@ -42,9 +43,25 @@ describe('BookActivity', () => {
     stubSignedOut()
     const { user } = renderWithProviders(<BookActivity bookKey="OL1W" />)
 
-    await user.click(await screen.findByRole('tab', { name: /comments/i }))
+    await user.click(await screen.findByRole('tab', { name: 'Discussions' }))
 
     expect(await screen.findByRole('heading', { name: /discussion/i })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /ratings & reviews/i })).toBeNull()
+  })
+
+  it("should label a review's comment toggle with its comment count", async () => {
+    stubSignedOut()
+    server.use(
+      http.get(`${BASE}/books/OL1W/reviews`, () =>
+        HttpResponse.json({
+          data: [{ ...review, commentCount: 3 }],
+          meta: { total: 1, offset: 0, limit: 20 },
+        }),
+      ),
+    )
+
+    renderWithProviders(<BookActivity bookKey="OL1W" />)
+
+    expect(await screen.findByRole('button', { name: '3 comments' })).toBeInTheDocument()
   })
 })

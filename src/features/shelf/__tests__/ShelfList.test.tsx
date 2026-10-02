@@ -2,12 +2,11 @@ import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { stubSignedOut } from '@/testing/authHandlers'
+import shelfEntry from '@/testing/mocks/shelf-entry.json'
 import { server } from '@/testing/msw-server'
 import { renderWithProviders, screen, waitFor, within } from '@/testing/test-utils'
 
 import { ShelfList } from '../components/ShelfList'
-
-import shelfEntry from './mocks/shelf-entry.json'
 
 const SHELF_URL = 'http://localhost:8080/api/v1/me/books'
 const SHELF_PAGE_SIZE = 15

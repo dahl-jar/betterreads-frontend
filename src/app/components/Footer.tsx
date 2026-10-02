@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 
+import { Wordmark } from './Wordmark'
+
 type FooterLink = {
   label: string
   to: string
-  external?: boolean
 }
 
 type FooterColumn = {
@@ -36,28 +37,27 @@ const COLUMNS: FooterColumn[] = [
   },
 ]
 
+const CURRENT_YEAR = new Date().getFullYear()
+
 export function Footer() {
   return (
-    <footer className="mt-14 bg-ink text-paper/80">
-      <div className="mx-auto grid max-w-5xl gap-8 px-6 py-12 sm:grid-cols-2 md:grid-cols-4">
+    <footer className="mt-16 border-t border-rule">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:grid-cols-2 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
         <div>
-          <Link to="/" className="text-xl text-paper no-underline">
-            better<b className="font-extrabold">reads</b>
-          </Link>
-          <p className="mt-3 max-w-60 text-sm">Track your reading and find your next book.</p>
+          <Wordmark className="text-lg" />
+          <p className="mt-2 max-w-[24ch] text-sm text-fg-2">
+            Track your reading and find your next book.
+          </p>
         </div>
         {COLUMNS.map((column) => (
           <nav key={column.heading} aria-label={column.heading}>
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-paper">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-fg-3">
               {column.heading}
             </h2>
-            <ul className="space-y-2">
+            <ul className="mt-3 flex flex-col gap-2 text-sm">
               {column.links.map((link) => (
                 <li key={link.label}>
-                  <Link
-                    to={link.to}
-                    className="text-sm text-paper/80 no-underline hover:text-paper"
-                  >
+                  <Link to={link.to} className="text-fg-2 no-underline hover:text-fg">
                     {link.label}
                   </Link>
                 </li>
@@ -66,12 +66,12 @@ export function Footer() {
           </nav>
         ))}
       </div>
-      <div className="mx-auto max-w-5xl px-6 pb-10">
-        <p className="border-t border-paper/15 pt-6 text-xs text-paper/60">
+      <div className="mx-auto max-w-6xl border-t border-rule px-5 py-6 text-xs text-fg-3">
+        <p>
           We set one 30-day cookie to renew your session when you return or reload a page. We use no
           tracking or advertising cookies. See the cookie policy for details.
         </p>
-        <p className="mt-3 text-xs text-paper/50">© 2026 BetterReads.</p>
+        <p className="mt-2">© {CURRENT_YEAR} BetterReads.</p>
       </div>
     </footer>
   )

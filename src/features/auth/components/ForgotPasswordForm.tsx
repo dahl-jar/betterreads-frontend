@@ -35,7 +35,7 @@ export function ForgotPasswordForm() {
 
   if (submitted) {
     return (
-      <p role="status" className="text-sm text-ink-soft">
+      <p role="status" className="text-sm text-fg-2">
         {NEUTRAL_CONFIRMATION}
       </p>
     )

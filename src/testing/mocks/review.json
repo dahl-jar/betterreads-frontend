@@ -4,5 +4,7 @@
   "rating": 5,
   "title": "A desert epic",
   "body": "Spice and sandworms.",
-  "createdAt": "2026-06-01"
+  "createdAt": "2026-06-01",
+  "author": "mustang",
+  "commentCount": 3
 }

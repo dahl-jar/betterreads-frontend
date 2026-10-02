@@ -93,7 +93,7 @@ function FormControl({ ...props }: ComponentProps<typeof Slot>) {
 
 function FormDescription({ className, ...props }: ComponentProps<'p'>) {
   const { formDescriptionId } = useFormField()
-  return <p id={formDescriptionId} className={cn('text-sm text-ink-soft', className)} {...props} />
+  return <p id={formDescriptionId} className={cn('text-sm text-fg-2', className)} {...props} />
 }
 
 function FormMessage({ className, children, ...props }: ComponentProps<'p'>) {

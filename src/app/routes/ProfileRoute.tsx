@@ -8,7 +8,7 @@ export function ProfileRoute() {
     <AuthenticatedPage>
       {user ? (
         <>
-          <h1 className="font-display text-3xl font-semibold text-ink">Your account</h1>
+          <h1 className="font-title text-3xl text-fg">Your account</h1>
 
           <dl className="mt-6 space-y-4">
             <Field label="Username" value={user.username} />
@@ -28,10 +28,10 @@ export function ProfileRoute() {
 function Field({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div>
-      <dt className="text-sm text-ink-faint">{label}</dt>
-      <dd className="text-ink">
+      <dt className="text-sm text-fg-3">{label}</dt>
+      <dd className="text-fg">
         {value}
-        {note ? <span className="ml-2 text-sm text-ink-soft">({note})</span> : null}
+        {note ? <span className="ml-2 text-sm text-fg-2">({note})</span> : null}
       </dd>
     </div>
   )

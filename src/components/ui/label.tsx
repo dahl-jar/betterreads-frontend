@@ -7,7 +7,7 @@ function Label({ className, ...props }: React.ComponentProps<typeof LabelRoot>) 
   return (
     <LabelRoot
       className={cn(
-        'text-sm font-semibold leading-none text-ink peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+        'text-sm font-semibold leading-none text-fg peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
         className,
       )}
       {...props}

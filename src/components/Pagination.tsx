@@ -12,12 +12,12 @@ export function Pagination({ page, hasNext, ariaLabel, onPageChange }: Paginatio
   }
 
   const buttonClass =
-    'rounded-md border border-line px-4 py-2 text-sm font-semibold text-ink hover:border-green hover:text-green disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink'
+    'rounded-md border border-rule px-4 py-2 text-sm font-semibold text-fg hover:border-fg-3 disabled:cursor-not-allowed disabled:text-fg-3 disabled:hover:border-rule'
 
   return (
     <nav
       aria-label={ariaLabel}
-      className="mt-8 flex items-center justify-between border-t border-line pt-4"
+      className="mt-10 flex items-center justify-between border-t border-rule pt-6"
     >
       <button
         type="button"
@@ -27,7 +27,7 @@ export function Pagination({ page, hasNext, ariaLabel, onPageChange }: Paginatio
       >
         Previous
       </button>
-      <span className="text-sm text-ink-soft">Page {page}</span>
+      <span className="text-sm font-semibold text-fg-2">Page {page}</span>
       <button
         type="button"
         onClick={() => onPageChange(page + 1)}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { Avatar } from '@/components/Avatar'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,13 +14,14 @@ type CommentThreadViewProps = {
   thread: WritableCommentThread
   postReply: (parentCommentId: number, body: string) => Promise<void>
   commentCount?: number | undefined
-  openLabel?: string
   alwaysOpen?: boolean
 }
 
-function closedLabel(count: number | undefined, fallback: string): string {
+const NO_COMMENTS_LABEL = 'Comment'
+
+function closedLabel(count: number | undefined): string {
   if (count === undefined || count === 0) {
-    return fallback
+    return NO_COMMENTS_LABEL
   }
   return count === 1 ? '1 comment' : `${count} comments`
 }
@@ -28,7 +30,6 @@ export function CommentThreadView({
   thread,
   postReply,
   commentCount,
-  openLabel = 'Comment',
   alwaysOpen = false,
 }: CommentThreadViewProps) {
   const { status: authStatus } = useAuth()
@@ -50,11 +51,7 @@ export function CommentThreadView({
   }
 
   const body = (
-    <div className="mt-3 space-y-4 border-l-2 border-line pl-4">
-      {authStatus === 'authenticated' ? (
-        <CommentForm placeholder="Add a comment" onSubmit={(body) => thread.post({ body })} />
-      ) : null}
-
+    <div className="mt-4 border-t border-rule pt-5">
       {thread.status === 'error' ? (
         <p role="alert" className="text-sm text-destructive">
           Could not load comments. Try again.
@@ -64,10 +61,10 @@ export function CommentThreadView({
       {thread.status === 'loading' && thread.comments.length === 0 ? <CommentsSkeleton /> : null}
 
       {thread.status === 'success' && thread.comments.length === 0 ? (
-        <p className="text-sm text-ink-soft">No comments yet.</p>
+        <p className="text-sm text-fg-2">No comments yet.</p>
       ) : null}
 
-      <ul className="space-y-4">
+      <ul className="flex flex-col gap-5">
         {thread.comments.map((comment) => (
           <li key={comment.id}>
             <CommentRow
@@ -84,16 +81,30 @@ export function CommentThreadView({
           type="button"
           onClick={() => void thread.loadMore()}
           disabled={thread.status === 'loading'}
-          className="text-sm font-semibold text-green hover:underline disabled:opacity-50"
+          className="mt-5 text-sm font-semibold text-brand hover-mark disabled:opacity-50"
         >
           Show more comments
         </button>
       ) : null}
+
+      <div className="mt-6">
+        {authStatus === 'authenticated' ? (
+          <CommentForm placeholder="Add a comment" onSubmit={(body) => thread.post({ body })} />
+        ) : null}
+        {authStatus === 'anonymous' ? (
+          <p className="text-sm text-fg-2">
+            <Link to="/login" className="font-semibold text-fg underline underline-offset-2">
+              Log in
+            </Link>{' '}
+            to comment.
+          </p>
+        ) : null}
+      </div>
     </div>
   )
 
   if (alwaysOpen) {
-    return <div className="mt-3">{body}</div>
+    return body
   }
 
   return (
@@ -101,9 +112,12 @@ export function CommentThreadView({
       <button
         type="button"
         onClick={toggle}
-        className="text-sm font-semibold text-green hover:underline"
+        aria-expanded={open}
+        className="text-sm font-semibold text-fg-2 hover-mark"
       >
-        {open ? 'Hide comments' : closedLabel(commentCount, openLabel)}
+        {open
+          ? 'Hide comments'
+          : closedLabel(thread.status === 'success' ? thread.total : commentCount)}
       </button>
       {open ? body : null}
     </div>
@@ -124,12 +138,12 @@ function CommentRow({ comment, postReply, canReply }: CommentRowProps) {
   return (
     <div>
       <CommentBody comment={comment} />
-      <div className="mt-1 flex gap-4 text-xs">
+      <div className="mt-1.5 flex gap-4 pl-11 text-xs font-semibold text-fg-2">
         {canReply ? (
           <button
             type="button"
             onClick={() => setReplying((current) => !current)}
-            className="font-semibold text-green hover:underline"
+            className="hover-mark"
           >
             Reply
           </button>
@@ -138,7 +152,8 @@ function CommentRow({ comment, postReply, canReply }: CommentRowProps) {
           <button
             type="button"
             onClick={() => setShowReplies((current) => !current)}
-            className="font-semibold text-ink-soft hover:underline"
+            aria-expanded={showReplies}
+            className="hover-mark"
           >
             {showReplies
               ? 'Hide replies'
@@ -148,7 +163,7 @@ function CommentRow({ comment, postReply, canReply }: CommentRowProps) {
       </div>
 
       {replying ? (
-        <div className="mt-2">
+        <div className="mt-3 pl-11">
           <CommentForm
             placeholder="Write a reply"
             onSubmit={async (body) => {
@@ -179,15 +194,15 @@ function CommentReplies({ commentId }: { commentId: number }) {
 
   if (replies.status === 'error') {
     return (
-      <p role="alert" className="mt-2 pl-4 text-xs text-destructive">
+      <p role="alert" className="mt-2 pl-11 text-xs text-destructive">
         Could not load replies.
       </p>
     )
   }
 
   return (
-    <div className="mt-2 border-l-2 border-line pl-4">
-      <ul className="space-y-3">
+    <div className="ml-11 mt-4 border-l border-rule pl-4">
+      <ul className="flex flex-col gap-4">
         {replies.comments.map((reply) => (
           <li key={reply.id}>
             <CommentBody comment={reply} />
@@ -199,7 +214,7 @@ function CommentReplies({ commentId }: { commentId: number }) {
           type="button"
           onClick={() => void replies.loadMore()}
           disabled={replies.status === 'loading'}
-          className="mt-2 text-xs font-semibold text-green hover:underline disabled:opacity-50"
+          className="mt-3 text-xs font-semibold text-brand hover-mark disabled:opacity-50"
         >
           Show more replies
         </button>
@@ -223,16 +238,16 @@ function CommentsSkeleton() {
 
 function CommentBody({ comment }: { comment: Comment }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-3">
       <Avatar name={comment.author} size="sm" />
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-sm">
-          <span className="font-semibold text-ink">{comment.author}</span>{' '}
-          <time className="text-xs text-ink-faint" dateTime={comment.createdAt}>
+          <span className="font-semibold text-fg">{comment.author}</span>{' '}
+          <time className="ml-1 text-xs text-fg-3" dateTime={comment.createdAt}>
             {formatDate(comment.createdAt)}
           </time>
         </p>
-        <p className="mt-0.5 whitespace-pre-line text-sm text-ink">{comment.body}</p>
+        <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed text-fg">{comment.body}</p>
       </div>
     </div>
   )
@@ -269,9 +284,9 @@ function CommentForm({ placeholder, onSubmit }: CommentFormProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-muted/40 px-4 py-3 transition focus-within:border-green/60 focus-within:bg-surface focus-within:ring-2 focus-within:ring-green-soft">
-      <div className="flex gap-3">
-        <Avatar name={name} url={user?.avatarUrl} size="sm" />
+    <div className="flex gap-3">
+      <Avatar name={name} url={user?.avatarUrl} size="sm" />
+      <div className="min-w-0 flex-1">
         <textarea
           value={body}
           placeholder={placeholder}
@@ -279,21 +294,21 @@ function CommentForm({ placeholder, onSubmit }: CommentFormProps) {
           maxLength={COMMENT_BODY_MAX}
           rows={2}
           onChange={(event) => setBody(event.target.value)}
-          className="mt-1 w-full resize-none bg-transparent text-ink placeholder:text-ink-faint focus:outline-none"
+          className="w-full resize-none rounded-md border border-rule bg-raised px-3 py-2 text-fg outline-none placeholder:text-fg-3 focus:border-fg-2"
         />
-      </div>
-      <div className="mt-2 flex items-center justify-end gap-3 border-t border-line/60 pt-2">
-        {failed ? (
-          <span className="mr-auto text-xs text-destructive">Could not post. Try again.</span>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={pending || body.trim() === ''}
-          className="rounded-full bg-green px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-green-deep disabled:opacity-50"
-        >
-          Post
-        </button>
+        <div className="mt-2 flex items-center justify-end gap-3">
+          {failed ? (
+            <span className="mr-auto text-xs text-destructive">Could not post. Try again.</span>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={pending || body.trim() === ''}
+            className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-50"
+          >
+            Post
+          </button>
+        </div>
       </div>
     </div>
   )

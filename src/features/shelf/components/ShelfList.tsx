@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Pagination } from '@/components/Pagination'
+import { AUTHOR_UNKNOWN, joinAuthors } from '@/lib/formatAuthors'
 
 import { type ReadingStatus, type ShelfEntry } from '../api/shelfSchemas'
 import { useShelf } from '../hooks/useShelf'
@@ -44,8 +45,8 @@ export function ShelfList() {
               aria-pressed={active}
               className={
                 active
-                  ? 'rounded-full bg-green px-4 py-1.5 text-sm font-semibold text-white'
-                  : 'rounded-full border border-line px-4 py-1.5 text-sm font-semibold text-ink-soft hover:bg-muted'
+                  ? 'rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-on-accent'
+                  : 'rounded-full border border-rule px-4 py-1.5 text-sm font-semibold text-fg-2 hover:bg-muted'
               }
             >
               {option.label}
@@ -61,10 +62,10 @@ export function ShelfList() {
       ) : null}
 
       {status === 'success' && entries.length === 0 ? (
-        <p className="text-ink-soft">No books on this shelf yet.</p>
+        <p className="text-fg-2">No books on this shelf yet.</p>
       ) : null}
 
-      <ul className="divide-y divide-line">
+      <ul className="divide-y divide-rule">
         {visibleEntries.map((entry) => (
           <li key={entry.key}>
             <Link to={`/books/${entry.key}`} className="flex gap-4 py-4 no-underline group">
@@ -74,27 +75,27 @@ export function ShelfList() {
                   alt=""
                   width={64}
                   height={96}
-                  className="h-24 w-16 rounded border border-line object-cover"
+                  className="h-24 w-16 rounded border border-rule object-cover"
                 />
               ) : (
-                <div className="flex h-24 w-16 items-center justify-center rounded border border-line bg-muted text-xs text-ink-faint">
+                <div className="flex h-24 w-16 items-center justify-center rounded border border-rule bg-muted text-xs text-fg-3">
                   No cover
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="font-display text-lg font-semibold text-ink group-hover:text-green">
+                <p className="font-title text-lg text-fg group-hover:text-brand">
                   {entry.title}
                   {entry.favorite ? (
                     <>
-                      <span className="ml-2 text-rust" aria-hidden="true">
+                      <span className="ml-2 text-star" aria-hidden="true">
                         ★
                       </span>
                       <span className="sr-only"> Favorite</span>
                     </>
                   ) : null}
                 </p>
-                <p className="mt-0.5 text-sm text-ink-soft">
-                  {entry.authors.length > 0 ? `by ${entry.authors.join(', ')}` : 'Author unknown'}
+                <p className="mt-0.5 text-sm text-fg-2">
+                  {entry.authors.length > 0 ? `by ${joinAuthors(entry.authors)}` : AUTHOR_UNKNOWN}
                 </p>
                 <ShelfEntryMeta entry={entry} />
               </div>
@@ -121,7 +122,7 @@ function ShelfEntryMeta({ entry }: { entry: ShelfEntry }) {
   const myRating = entry.myRating ?? undefined
 
   return (
-    <div className="mt-1.5 flex flex-col gap-1 text-sm text-ink-faint">
+    <div className="mt-1.5 flex flex-col gap-1 text-sm text-fg-3">
       <ShelfDateLine addedAt={addedAt} finishedAt={finishedAt} />
       <ShelfRatingLine averageRating={averageRating} myRating={myRating} />
     </div>
@@ -162,7 +163,7 @@ function ShelfRatingLine({
     <p className="flex flex-wrap items-center gap-x-3">
       {averageRating !== undefined ? (
         <span>
-          <span className="text-rust">★</span> {averageRating.toFixed(2)} avg
+          <span className="text-star">★</span> {averageRating.toFixed(2)} avg
         </span>
       ) : null}
       {myRating !== undefined ? <StarRating value={myRating} /> : null}
@@ -172,9 +173,9 @@ function ShelfRatingLine({
 
 function StarRating({ value }: { value: number }) {
   return (
-    <span aria-label={`Your rating: ${value} of ${MAX_STARS}`} className="text-rust">
+    <span aria-label={`Your rating: ${value} of ${MAX_STARS}`} className="text-star">
       {'★'.repeat(value)}
-      <span className="text-ink-faint">{'☆'.repeat(Math.max(0, MAX_STARS - value))}</span>
+      <span className="text-fg-3">{'☆'.repeat(Math.max(0, MAX_STARS - value))}</span>
     </span>
   )
 }

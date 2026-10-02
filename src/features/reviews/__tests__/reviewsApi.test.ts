@@ -1,14 +1,14 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
+import { ZodError } from 'zod'
 
+import review from '@/testing/mocks/review.json'
 import { server } from '@/testing/msw-server'
 
 import { deleteMyReview } from '../api/deleteMyReview'
 import { findMyReviewForBook } from '../api/findMyReviewForBook'
 import { getBookReviews } from '../api/getBookReviews'
 import { upsertMyReview } from '../api/upsertMyReview'
-
-import review from './mocks/review.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 
@@ -48,13 +48,22 @@ describe('getBookReviews', () => {
   })
 
   it('should parse a rating-only review with no title or body', async () => {
-    const ratingOnly = { id: 6, bookKey: 'OL1W', rating: 4, createdAt: '2026-06-01' }
+    const ratingOnly = Object.fromEntries(
+      Object.entries(review).filter(([name]) => name !== 'title' && name !== 'body'),
+    )
     server.use(http.get(`${BASE}/books/OL1W/reviews`, () => pageOf([ratingOnly], 1, 0, 20)))
 
     const page = await getBookReviews('OL1W')
 
     expect(page.reviews[0]?.title).toBeUndefined()
     expect(page.reviews[0]?.body).toBeUndefined()
+  })
+
+  it('should reject a review with no author', async () => {
+    const anonymous = { ...review, author: undefined }
+    server.use(http.get(`${BASE}/books/OL1W/reviews`, () => pageOf([anonymous], 1, 0, 20)))
+
+    await expect(getBookReviews('OL1W')).rejects.toBeInstanceOf(ZodError)
   })
 })
 

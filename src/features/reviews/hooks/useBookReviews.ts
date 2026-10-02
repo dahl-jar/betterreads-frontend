@@ -10,20 +10,17 @@ import { upsertMyReview } from '../api/upsertMyReview'
 
 export type ReviewsStatus = 'loading' | 'success' | 'error'
 
-export type BookReviews = {
-  status: ReviewsStatus
-  myReview: Review | undefined
-  myReviewReady: boolean
-  reviews: Review[]
-  save: (input: UpsertReviewInput) => Promise<void>
-  remove: () => Promise<void>
-}
-
 type ReviewsState = {
   status: ReviewsStatus
   myReview: Review | undefined
   myReviewReady: boolean
   reviews: Review[]
+  total: number | undefined
+}
+
+export type BookReviews = ReviewsState & {
+  save: (input: UpsertReviewInput) => Promise<void>
+  remove: () => Promise<void>
 }
 
 type OwnReview = {
@@ -33,7 +30,13 @@ type OwnReview = {
 
 type ReviewsAction =
   | { type: 'loading'; ownReviewPending: boolean; preservePublicReviews: boolean }
-  | { type: 'loaded'; myReview: Review | undefined; myReviewReady: boolean; reviews: Review[] }
+  | {
+      type: 'loaded'
+      myReview: Review | undefined
+      myReviewReady: boolean
+      reviews: Review[]
+      total: number
+    }
   | { type: 'failed' }
   | { type: 'saved'; review: Review }
   | { type: 'removed' }
@@ -43,6 +46,7 @@ const INITIAL_STATE: ReviewsState = {
   myReview: undefined,
   myReviewReady: false,
   reviews: [],
+  total: undefined,
 }
 
 function reviewsReducer(state: ReviewsState, action: ReviewsAction): ReviewsState {
@@ -53,6 +57,7 @@ function reviewsReducer(state: ReviewsState, action: ReviewsAction): ReviewsStat
         myReview: undefined,
         myReviewReady: !action.ownReviewPending,
         reviews: action.preservePublicReviews ? state.reviews : [],
+        total: action.preservePublicReviews ? state.total : undefined,
       }
     case 'loaded':
       return {
@@ -60,9 +65,16 @@ function reviewsReducer(state: ReviewsState, action: ReviewsAction): ReviewsStat
         myReview: action.myReview,
         myReviewReady: action.myReviewReady,
         reviews: action.reviews,
+        total: action.total,
       }
     case 'failed':
-      return { status: 'error', myReview: undefined, myReviewReady: true, reviews: [] }
+      return {
+        status: 'error',
+        myReview: undefined,
+        myReviewReady: true,
+        reviews: [],
+        total: undefined,
+      }
     case 'saved':
       return {
         ...state,
@@ -103,11 +115,16 @@ export function useBookReviews(bookKey: string, onReviewChange?: () => void): Bo
         const reviews = own.review
           ? page.reviews.filter((review) => review.id !== own.review?.id)
           : page.reviews
-        dispatch({ type: 'loaded', myReview: own.review, myReviewReady: own.known, reviews })
+        dispatch({
+          type: 'loaded',
+          myReview: own.review,
+          myReviewReady: own.known,
+          reviews,
+          total: page.total,
+        })
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (!controller.signal.aborted) {
-          void error
           dispatch({ type: 'failed' })
         }
       })
@@ -130,12 +147,5 @@ export function useBookReviews(bookKey: string, onReviewChange?: () => void): Bo
     onReviewChange?.()
   }, [bookKey, onReviewChange])
 
-  return {
-    status: state.status,
-    myReview: state.myReview,
-    myReviewReady: state.myReviewReady,
-    reviews: state.reviews,
-    save,
-    remove,
-  }
+  return { ...state, save, remove }
 }

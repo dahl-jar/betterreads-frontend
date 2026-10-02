@@ -10,6 +10,8 @@ export const reviewSchema = z.object({
   title: z.string().nullish(),
   body: z.string().nullish(),
   createdAt: z.string(),
+  author: z.string(),
+  commentCount: z.number().int(),
 })
 
 export type Review = z.infer<typeof reviewSchema>

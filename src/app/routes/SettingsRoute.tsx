@@ -8,7 +8,7 @@ export function SettingsRoute() {
 
   return (
     <AuthenticatedPage>
-      <h1 className="font-display text-3xl font-semibold text-ink">Settings</h1>
+      <h1 className="font-title text-3xl text-fg">Settings</h1>
       <DeleteAccountSection onDeleted={() => void navigate('/', { replace: true })} />
     </AuthenticatedPage>
   )

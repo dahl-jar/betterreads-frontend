@@ -2,12 +2,11 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import shelfEntry from '@/testing/mocks/shelf-entry.json'
 import { server } from '@/testing/msw-server'
 
 import { type ReadingStatus } from '../api/shelfSchemas'
 import { useShelf } from '../hooks/useShelf'
-
-import shelfEntry from './mocks/shelf-entry.json'
 
 const SHELF_URL = 'http://localhost:8080/api/v1/me/books'
 

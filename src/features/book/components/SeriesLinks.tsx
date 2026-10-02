@@ -6,21 +6,19 @@ import { type BookDetail } from '../api/getBook'
 
 type SeriesLinksProps = {
   book: BookDetail
+  seriesHref: (name: string) => string
+  className: string
 }
 
-export function SeriesLinks({ book }: SeriesLinksProps) {
+export function SeriesLinks({ book, seriesHref, className }: SeriesLinksProps) {
   const series = seriesEntries(book)
   if (series.length === 0) {
     return null
   }
   return (
-    <p className="flex flex-wrap gap-x-4 font-display text-lg italic text-ink-soft">
+    <p className={className}>
       {series.map((entry) => (
-        <Link
-          key={entry.name}
-          to={`/search?q=${encodeURIComponent(entry.name)}`}
-          className="hover:text-green hover:underline"
-        >
+        <Link key={entry.name} to={seriesHref(entry.name)} className="hover-mark">
           {entry.position ? `${entry.name} #${entry.position}` : entry.name}
         </Link>
       ))}

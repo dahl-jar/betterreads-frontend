@@ -18,29 +18,36 @@ const ReviewComments = lazy(() =>
 type BookActivityProps = {
   bookKey: string
   onReviewChange?: () => void
+  onTotalChange?: (total: number) => void
 }
 
 type Tab = 'reviews' | 'comments'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'reviews', label: 'Reviews' },
-  { id: 'comments', label: 'Comments' },
+  { id: 'comments', label: 'Discussions' },
 ]
 
-export function BookActivity({ bookKey, onReviewChange }: BookActivityProps) {
+export function BookActivity({ bookKey, onReviewChange, onTotalChange }: BookActivityProps) {
   const [tab, setTab] = useState<Tab>('reviews')
 
   return (
-    <div className="mt-12">
-      <TabList tabs={TABS} activeTab={tab} ariaLabel="Reviews and comments" onTabChange={setTab} />
+    <div className="mt-10">
+      <TabList
+        tabs={TABS}
+        activeTab={tab}
+        ariaLabel="Reviews and discussions"
+        onTabChange={setTab}
+      />
 
       {tab === 'reviews' ? (
         <BookReviews
           bookKey={bookKey}
           onReviewChange={onReviewChange}
-          renderComments={(reviewId) => (
+          onTotalChange={onTotalChange}
+          renderComments={(reviewId, commentCount) => (
             <Suspense fallback={null}>
-              <ReviewComments reviewId={reviewId} />
+              <ReviewComments reviewId={reviewId} commentCount={commentCount} />
             </Suspense>
           )}
         />

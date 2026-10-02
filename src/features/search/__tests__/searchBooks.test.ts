@@ -1,11 +1,10 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import searchHit from '@/testing/mocks/search-hit.json'
 import { server } from '@/testing/msw-server'
 
 import { searchBooks } from '../api/searchBooks'
-
-import searchHit from './mocks/search-hit.json'
 
 const SEARCH_URL = 'http://localhost:8080/api/v1/search/books'
 

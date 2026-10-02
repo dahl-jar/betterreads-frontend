@@ -40,4 +40,15 @@ describe('SearchForm', () => {
 
     expect(screen.getByRole('searchbox')).toHaveValue('mistborn')
   })
+
+  it('should submit the query trimmed', async () => {
+    const onSearch = vi.fn()
+    const user = userEvent.setup()
+    render(<SearchForm variant="header" onSearch={onSearch} />)
+
+    await user.type(screen.getByRole('searchbox'), '  dune  ')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(onSearch).toHaveBeenCalledWith('dune')
+  })
 })

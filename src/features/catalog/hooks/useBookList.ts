@@ -4,7 +4,7 @@ import { getBookList, type BookCard, type BookListType } from '../api/getBookLis
 
 export type BookListStatus = 'loading' | 'success' | 'error'
 
-type BookListState = {
+export type BookListState = {
   status: BookListStatus
   cards: BookCard[]
 }

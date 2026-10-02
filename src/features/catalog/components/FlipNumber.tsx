@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const numberFormat = new Intl.NumberFormat('en-US')
+import { formatCount } from '@/lib/formatCount'
 
 type FlipNumberProps = {
   value: number
@@ -21,8 +21,8 @@ export function FlipNumber({ value }: FlipNumberProps) {
     setSeen({ value, previous: seen.value })
   }
 
-  const formatted = numberFormat.format(value)
-  const before = seen.previous === undefined ? undefined : [...numberFormat.format(seen.previous)]
+  const formatted = formatCount(value)
+  const before = seen.previous === undefined ? undefined : [...formatCount(seen.previous)]
   return (
     <span className="flip-number" aria-label={formatted}>
       {[...formatted].map((char, index) => {
