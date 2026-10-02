@@ -91,32 +91,26 @@ export function SearchResults({ status, hits, query }: SearchResultsProps) {
             <ul className="border-l border-line pl-4">
               {group.books.map((book) => (
                 <li key={book.bookId}>
-                  <BookRow hit={book} showSeries={false} />
+                  <BookRow hit={book} />
                 </li>
               ))}
             </ul>
           </section>
         ) : (
-          <BookRow key={group.book.bookId} hit={group.book} showSeries />
+          <BookRow key={group.book.bookId} hit={group.book} />
         ),
       )}
     </div>
   )
 }
 
-function BookRow({ hit, showSeries }: { hit: BookSearchDocument; showSeries: boolean }) {
+function BookRow({ hit }: { hit: BookSearchDocument }) {
   return (
     <Link to={`/books/${hit.bookId}`} className="flex gap-4 py-4 no-underline group">
       <BookCover coverUrl={hit.coverUrl ?? undefined} title={hit.title} />
       <div className="min-w-0 flex-1">
         <p className="font-display text-lg font-semibold text-ink group-hover:text-green">
           {hit.title}
-          {showSeries && hit.seriesName ? (
-            <span className="font-body text-base font-normal text-ink-soft">
-              {' '}
-              ({hit.seriesName})
-            </span>
-          ) : null}
         </p>
         {hit.subtitle ? <p className="text-sm text-ink-soft">{hit.subtitle}</p> : null}
         <p className="mt-0.5 text-sm text-ink-soft">

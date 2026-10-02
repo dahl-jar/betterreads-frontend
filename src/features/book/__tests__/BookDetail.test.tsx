@@ -7,23 +7,18 @@ import { renderWithProviders, screen } from '@/testing/test-utils'
 import type { BookDetail as BookDetailData } from '../api/getBook'
 import { BookDetail } from '../components/BookDetail'
 
+import sparseBookDetail from './mocks/book-detail-sparse.json'
+import bookDetail from './mocks/book-detail.json'
+
 const fullBook: BookDetailData = {
-  key: '9780765312921',
-  complete: true,
+  ...bookDetail,
   title: 'Hunters of Dune',
   authors: ['Brian Herbert', 'Kevin J. Anderson'],
   description: 'A Dune universe novel.',
-  coverUrl: 'https://covers.example/cover.jpg',
-  firstPublishYear: 2006,
-  isbn: '9780765312921',
-  pageCount: 512,
-  language: 'en',
   averageRating: 3.9,
-  ratingCount: 12000,
   seriesName: 'Dune',
   seriesPosition: 7,
-  subjects: ['Science fiction', 'Space opera'],
-  awards: ['Some Award'],
+  series: undefined,
 }
 
 describe('BookDetail', () => {
@@ -60,6 +55,24 @@ describe('BookDetail', () => {
     expect(seriesLink).toHaveAttribute('href', '/search?q=Dune')
   })
 
+  it('should link every series', () => {
+    renderWithProviders(<BookDetail book={bookDetail} />)
+
+    const stormlight = screen.getByRole('link', { name: 'The Stormlight Archive #2' })
+    const cosmere = screen.getByRole('link', { name: 'The Cosmere #12' })
+
+    expect(stormlight).toHaveAttribute('href', '/search?q=The%20Stormlight%20Archive')
+    expect(cosmere).toHaveAttribute('href', '/search?q=The%20Cosmere')
+  })
+
+  it('should link the primary series when series is empty', () => {
+    renderWithProviders(<BookDetail book={{ ...fullBook, series: [] }} />)
+
+    const seriesLink = screen.getByRole('link', { name: 'Dune #7' })
+
+    expect(seriesLink).toHaveAttribute('href', '/search?q=Dune')
+  })
+
   it("should show the language name in the reader's locale", () => {
     const language = new Intl.DisplayNames(undefined, { type: 'language' }).of('en')
 
@@ -81,15 +94,7 @@ describe('BookDetail', () => {
   })
 
   it('should note that details are still arriving', () => {
-    const cold: BookDetailData = {
-      key: '9780765312921',
-      complete: false,
-      title: 'Hunters of Dune',
-      authors: ['Brian Herbert'],
-      subjects: [],
-      awards: [],
-    }
-    renderWithProviders(<BookDetail book={cold} />)
+    renderWithProviders(<BookDetail book={sparseBookDetail} />)
 
     expect(screen.getByText(/still (gathering|arriving)|filling in/i)).toBeInTheDocument()
   })

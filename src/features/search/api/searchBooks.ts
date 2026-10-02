@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { apiGetPaged } from '@/lib/api/client'
+import { seriesSchema } from '@/lib/series'
 
 const SEARCH_BOOKS_PATH = '/api/v1/search/books'
 
@@ -10,6 +11,7 @@ export const bookSearchDocumentSchema = z.object({
   subtitle: z.string().nullish(),
   seriesName: z.string().nullish(),
   seriesPosition: z.number().int().nullish(),
+  series: seriesSchema.optional(),
   authors: z.array(z.string()),
   subjects: z.array(z.string()),
   language: z.string().nullish(),

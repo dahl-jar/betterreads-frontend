@@ -4,6 +4,7 @@
   "subtitle": null,
   "seriesName": "Dune",
   "seriesPosition": 1,
+  "series": [{ "name": "Dune", "position": 1 }],
   "authors": ["Frank Herbert"],
   "subjects": ["Science fiction"],
   "language": "eng",

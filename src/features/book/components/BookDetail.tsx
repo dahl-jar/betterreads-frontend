@@ -1,11 +1,11 @@
 import { type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 
 import { StarRating } from '@/components/StarRating'
 import { uniqueSubjects } from '@/lib/subjects'
 
 import { type BookDetail as BookDetailData } from '../api/getBook'
 
+import { SeriesLinks } from './SeriesLinks'
 import { ShowMoreText } from './ShowMoreText'
 
 type BookDetailProps = {
@@ -25,10 +25,6 @@ const LANGUAGE_NAMES = new Intl.DisplayNames(undefined, { type: 'language' })
 export function BookDetail({ book, rating, shelfControl, activity }: BookDetailProps) {
   const displayedRating = rating ?? { average: book.averageRating, count: book.ratingCount }
 
-  const seriesLabel =
-    book.seriesName && book.seriesPosition
-      ? `${book.seriesName} #${book.seriesPosition}`
-      : book.seriesName
   const details = [
     book.pageCount ? `${book.pageCount} ${book.pageCount === 1 ? 'page' : 'pages'}` : undefined,
     book.firstPublishYear ? `First published ${book.firstPublishYear}` : undefined,
@@ -58,16 +54,7 @@ export function BookDetail({ book, rating, shelfControl, activity }: BookDetailP
       </div>
 
       <div className="min-w-0">
-        {seriesLabel && book.seriesName ? (
-          <p className="font-display text-lg italic text-ink-soft">
-            <Link
-              to={`/search?q=${encodeURIComponent(book.seriesName)}`}
-              className="hover:text-green hover:underline"
-            >
-              {seriesLabel}
-            </Link>
-          </p>
-        ) : null}
+        <SeriesLinks book={book} />
         <h1 className="font-display text-4xl font-semibold leading-tight text-ink">{book.title}</h1>
         {book.subtitle ? <p className="mt-1 text-lg text-ink-soft">{book.subtitle}</p> : null}
         <p className="mt-2 text-ink-soft">

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { apiGet } from '@/lib/api/client'
+import { seriesSchema } from '@/lib/series'
 
 const BOOKS_PATH = '/api/v1/books'
 
@@ -20,6 +21,7 @@ export const bookDetailSchema = z.object({
   ratingCount: z.number().int().nullish(),
   seriesName: z.string().nullish(),
   seriesPosition: z.number().int().nullish(),
+  series: seriesSchema.optional(),
   subjects: z.array(z.string()),
   awards: z.array(z.string()),
 })

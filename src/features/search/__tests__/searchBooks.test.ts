@@ -29,6 +29,17 @@ describe('searchBooks', () => {
     expect(result.totalHits).toBe(1)
     expect(result.hits[0]?.title).toBe('Dune')
     expect(result.hits[0]?.authors).toEqual(['Frank Herbert'])
+    expect(result.hits[0]?.series).toEqual([{ name: 'Dune', position: 1 }])
+  })
+
+  it('should accept a hit without series', async () => {
+    const hit = { ...defaultHit(), series: undefined }
+    server.use(http.get(SEARCH_URL, () => HttpResponse.json(pagedBody([hit]))))
+
+    const result = await searchBooks({ query: 'dune' })
+
+    expect(result.hits[0]?.title).toBe('Dune')
+    expect(result.hits[0]?.series).toBeUndefined()
   })
 
   it('should send the search parameters', async () => {

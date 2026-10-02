@@ -5,27 +5,13 @@ import { server } from '@/testing/msw-server'
 
 import { getBook } from '../api/getBook'
 
+import sparseBookDetail from './mocks/book-detail-sparse.json'
+import bookDetail from './mocks/book-detail.json'
+
 const BOOK_URL = 'http://localhost:8080/api/v1/books/9780765312921'
 
 function detailBody(overrides: Record<string, unknown> = {}) {
-  return {
-    key: '9780765312921',
-    complete: true,
-    title: 'Hunters of Dune',
-    authors: ['Brian Herbert'],
-    description: 'A Dune universe novel.',
-    coverUrl: 'https://covers.example/9780765312921.jpg',
-    firstPublishYear: 2006,
-    isbn: '9780765312921',
-    pageCount: 512,
-    averageRating: 3.9,
-    ratingCount: 12000,
-    seriesName: 'Dune',
-    seriesPosition: 7,
-    subjects: ['Science fiction'],
-    awards: [],
-    ...overrides,
-  }
+  return { ...bookDetail, ...overrides }
 }
 
 describe('getBook', () => {
@@ -34,27 +20,25 @@ describe('getBook', () => {
 
     const book = await getBook('9780765312921')
 
-    expect(book.title).toBe('Hunters of Dune')
+    expect(book.title).toBe('Words of Radiance')
     expect(book.complete).toBe(true)
-    expect(book.seriesName).toBe('Dune')
-    expect(book.averageRating).toBe(3.9)
+    expect(book.seriesName).toBe('The Stormlight Archive')
+    expect(book.averageRating).toBe(4.76)
+  })
+
+  it('should parse every series', async () => {
+    server.use(http.get(BOOK_URL, () => HttpResponse.json({ data: detailBody() })))
+
+    const book = await getBook('9780765312921')
+
+    expect(book.series).toEqual([
+      { name: 'The Stormlight Archive', position: 2 },
+      { name: 'The Cosmere', position: 12 },
+    ])
   })
 
   it('should parse a sparse incomplete seed with most fields absent', async () => {
-    server.use(
-      http.get(BOOK_URL, () =>
-        HttpResponse.json({
-          data: {
-            key: '9780765312921',
-            complete: false,
-            title: 'Hunters of Dune',
-            authors: ['Brian Herbert'],
-            subjects: [],
-            awards: [],
-          },
-        }),
-      ),
-    )
+    server.use(http.get(BOOK_URL, () => HttpResponse.json({ data: sparseBookDetail })))
 
     const book = await getBook('9780765312921')
 

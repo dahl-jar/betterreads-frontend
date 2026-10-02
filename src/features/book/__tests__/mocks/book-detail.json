@@ -1,0 +1,23 @@
+{
+  "key": "9780765326362",
+  "complete": true,
+  "title": "Words of Radiance",
+  "subtitle": null,
+  "authors": ["Brandon Sanderson"],
+  "description": "The second book of The Stormlight Archive.",
+  "coverUrl": null,
+  "firstPublishYear": 2014,
+  "isbn": "9780765326362",
+  "pageCount": 1087,
+  "language": "en",
+  "averageRating": 4.76,
+  "ratingCount": 300000,
+  "seriesName": "The Stormlight Archive",
+  "seriesPosition": 2,
+  "series": [
+    { "name": "The Stormlight Archive", "position": 2 },
+    { "name": "The Cosmere", "position": 12 }
+  ],
+  "subjects": ["Fantasy"],
+  "awards": []
+}

@@ -8,11 +8,9 @@ import searchHit from './mocks/search-hit.json'
 function book(overrides: Partial<BookSearchDocument>): BookSearchDocument {
   return {
     ...searchHit,
-    bookId: 'id',
-    title: 'A Book',
     seriesName: null,
     seriesPosition: null,
-    publicationYear: null,
+    series: [],
     ...overrides,
   }
 }
@@ -106,6 +104,26 @@ describe('groupBySeries', () => {
     ])
   })
 
+  it('should sort an older unpositioned book after positioned ones', () => {
+    const positioned = book({
+      bookId: 'p',
+      title: 'Book One',
+      seriesName: 'Saga',
+      seriesPosition: 1,
+      publicationYear: 2010,
+    })
+    const companion = book({
+      bookId: 'c',
+      title: 'Companion',
+      seriesName: 'Saga',
+      publicationYear: 2000,
+    })
+
+    const groups = groupBySeries([positioned, companion])
+
+    expect(groups).toEqual([{ kind: 'series', seriesName: 'Saga', books: [positioned, companion] }])
+  })
+
   it('should preserve relevance order across result groups', () => {
     const standalone = book({ bookId: 's', title: 'Elantris' })
     const seriesA = book({ bookId: 'a', title: 'Book A', seriesName: 'Stormlight' })
@@ -125,5 +143,50 @@ describe('groupBySeries', () => {
     const groups = groupBySeries([lone])
 
     expect(groups).toEqual([{ kind: 'series', seriesName: 'Trilogy', books: [lone] }])
+  })
+
+  it('should put a book in every series group', () => {
+    const wordsOfRadiance = book({
+      bookId: 'wor',
+      title: 'Words of Radiance',
+      series: [
+        { name: 'The Stormlight Archive', position: 2 },
+        { name: 'The Cosmere', position: 12 },
+      ],
+    })
+
+    const groups = groupBySeries([wordsOfRadiance])
+
+    expect(groups).toEqual([
+      { kind: 'series', seriesName: 'The Stormlight Archive', books: [wordsOfRadiance] },
+      { kind: 'series', seriesName: 'The Cosmere', books: [wordsOfRadiance] },
+    ])
+  })
+
+  it('should order each group by its own series position', () => {
+    const wordsOfRadiance = book({
+      bookId: 'wor',
+      title: 'Words of Radiance',
+      seriesName: 'The Stormlight Archive',
+      seriesPosition: 2,
+      series: [
+        { name: 'The Stormlight Archive', position: 2 },
+        { name: 'The Cosmere', position: 12 },
+      ],
+    })
+    const warbreaker = book({
+      bookId: 'w',
+      title: 'Warbreaker',
+      seriesName: 'The Cosmere',
+      seriesPosition: 7,
+      series: [{ name: 'The Cosmere', position: 7 }],
+    })
+
+    const groups = groupBySeries([wordsOfRadiance, warbreaker])
+
+    expect(groups).toEqual([
+      { kind: 'series', seriesName: 'The Stormlight Archive', books: [wordsOfRadiance] },
+      { kind: 'series', seriesName: 'The Cosmere', books: [warbreaker, wordsOfRadiance] },
+    ])
   })
 })

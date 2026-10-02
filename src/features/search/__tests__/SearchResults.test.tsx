@@ -60,6 +60,7 @@ describe('SearchResults', () => {
       title: 'The Final Empire',
       seriesName: 'Mistborn',
       seriesPosition: 1,
+      series: [{ name: 'Mistborn', position: 1 }],
       authors: ['Brandon Sanderson'],
       subjects: [],
       publicationYear: 2006,
@@ -70,6 +71,7 @@ describe('SearchResults', () => {
       bookId: '2',
       title: 'The Well of Ascension',
       seriesPosition: 2,
+      series: [{ name: 'Mistborn', position: 2 }],
       publicationYear: 2007,
     }
     renderResults(
@@ -90,6 +92,7 @@ describe('SearchResults', () => {
       title: 'Warbreaker',
       seriesName: null,
       seriesPosition: null,
+      series: [],
       authors: ['Brandon Sanderson'],
       subjects: [],
       publicationYear: 2009,
