@@ -16,4 +16,5 @@ export type RegisterInput = {
 export type LoginInput = {
   identifier: string
   password: string
+  rememberMe: boolean
 }

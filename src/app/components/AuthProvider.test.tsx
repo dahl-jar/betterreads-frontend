@@ -15,7 +15,8 @@ const BASE = 'http://localhost:8080/api/v1/auth'
 
 function Probe() {
   const { user, status, login, logout } = useAuth()
-  const signIn = () => void login({ identifier: 'darrow', password: 'secret-12' })
+  const signIn = () =>
+    void login({ identifier: 'darrow', password: 'secret-12', rememberMe: false })
   const signOut = () => void logout().catch(() => undefined)
   const loadProtected = () =>
     void Promise.allSettled([apiGet('/api/v1/auth/me'), apiGet('/api/v1/auth/me')])
@@ -36,6 +37,17 @@ function renderWithAuth() {
       <Probe />
     </AuthProvider>,
   )
+}
+
+async function renderSignedIn(logoutStatus: number) {
+  server.use(
+    http.post(`${BASE}/refresh`, () =>
+      HttpResponse.json({ data: { ...auth, accessToken: 'jwt-3' } }),
+    ),
+    http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: logoutStatus })),
+  )
+  renderWithAuth()
+  await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('darrow'))
 }
 
 afterEach(() => {
@@ -70,9 +82,7 @@ describe('AuthProvider', () => {
     server.use(
       http.post(`${BASE}/refresh`, () => new HttpResponse(null, { status: 401 })),
       http.post(`${BASE}/login`, () =>
-        HttpResponse.json({
-          data: { ...auth, accessToken: 'jwt-2', user: { ...auth.user, emailVerified: false } },
-        }),
+        HttpResponse.json({ data: { ...auth, accessToken: 'jwt-2' } }),
       ),
     )
     renderWithAuth()
@@ -85,14 +95,7 @@ describe('AuthProvider', () => {
   })
 
   it('should clear the session after logout', async () => {
-    server.use(
-      http.post(`${BASE}/refresh`, () =>
-        HttpResponse.json({ data: { ...auth, accessToken: 'jwt-3' } }),
-      ),
-      http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: 204 })),
-    )
-    renderWithAuth()
-    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('darrow'))
+    await renderSignedIn(204)
 
     await userEvent.click(screen.getByRole('button', { name: 'sign out' }))
 
@@ -101,14 +104,7 @@ describe('AuthProvider', () => {
   })
 
   it('should clear the session when logout fails', async () => {
-    server.use(
-      http.post(`${BASE}/refresh`, () =>
-        HttpResponse.json({ data: { ...auth, accessToken: 'jwt-3' } }),
-      ),
-      http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: 500 })),
-    )
-    renderWithAuth()
-    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('darrow'))
+    await renderSignedIn(500)
 
     await userEvent.click(screen.getByRole('button', { name: 'sign out' }))
 

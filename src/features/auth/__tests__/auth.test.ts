@@ -7,11 +7,9 @@ import { server } from '@/testing/msw-server'
 
 import { deleteAccount } from '../api/deleteAccount'
 import { forgotPassword } from '../api/forgotPassword'
-import { login } from '../api/login'
 import { refresh } from '../api/refresh'
 import { register } from '../api/register'
 import { resetPassword } from '../api/resetPassword'
-import { verifyEmail } from '../api/verifyEmail'
 
 const BASE = 'http://localhost:8080/api/v1/auth'
 
@@ -73,12 +71,12 @@ describe('refresh', () => {
 })
 
 describe('register', () => {
-  it('should return a token after registration', async () => {
+  it('should accept an empty registration response', async () => {
     let sentBody: unknown
     server.use(
       http.post(`${BASE}/register`, async ({ request }) => {
         sentBody = await request.json()
-        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-abc' } })
+        return new HttpResponse(null, { status: 201 })
       }),
     )
 
@@ -88,38 +86,12 @@ describe('register', () => {
       password: 'secret-12',
     })
 
+    expect(result).toBeUndefined()
     expect(sentBody).toEqual({
       username: 'darrow',
       email: 'darrow@example.com',
       password: 'secret-12',
     })
-    expect(result.accessToken).toBe('jwt-abc')
-  })
-
-  it('should reject a success response with no access token', async () => {
-    server.use(
-      http.post(`${BASE}/register`, () => HttpResponse.json({ data: { unexpected: true } })),
-    )
-
-    await expect(
-      register({ username: 'darrow', email: 'darrow@example.com', password: 'secret-12' }),
-    ).rejects.toThrow()
-  })
-})
-
-describe('login', () => {
-  it('should send the login credentials', async () => {
-    let sentBody: unknown
-    server.use(
-      http.post(`${BASE}/login`, async ({ request }) => {
-        sentBody = await request.json()
-        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-xyz' } })
-      }),
-    )
-
-    await login({ identifier: 'darrow@example.com', password: 'secret-12' })
-
-    expect(sentBody).toEqual({ identifier: 'darrow@example.com', password: 'secret-12' })
   })
 })
 
@@ -152,22 +124,6 @@ describe('resetPassword', () => {
     await resetPassword({ token: 'reset-token', newPassword: 'brand-new-pass' })
 
     expect(sentBody).toEqual({ token: 'reset-token', newPassword: 'brand-new-pass' })
-  })
-})
-
-describe('verifyEmail', () => {
-  it('should send the token to the verify endpoint', async () => {
-    let sentBody: unknown
-    server.use(
-      http.post(`${BASE}/verify-email`, async ({ request }) => {
-        sentBody = await request.json()
-        return new HttpResponse(null, { status: 204 })
-      }),
-    )
-
-    await verifyEmail({ token: 'verify-token' })
-
-    expect(sentBody).toEqual({ token: 'verify-token' })
   })
 })
 

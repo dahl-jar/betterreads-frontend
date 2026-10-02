@@ -6,7 +6,7 @@ import { Form } from '@/components/ui/form'
 type AuthFormProps<TValues extends FieldValues> = {
   form: UseFormReturn<TValues>
   onSubmit: SubmitHandler<TValues>
-  errorMessage: string
+  errorMessage: ReactNode
   children: ReactNode
 }
 

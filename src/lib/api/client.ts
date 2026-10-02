@@ -319,6 +319,14 @@ export async function apiPost(
   return envelope.data
 }
 
+export async function apiPostIgnoringResponse(
+  path: string,
+  body: unknown,
+  options: RequestOptions = {},
+): Promise<void> {
+  await request(path, 'POST', options, body, 'ignore')
+}
+
 export async function apiPut(
   path: string,
   body: unknown,

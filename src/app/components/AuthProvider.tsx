@@ -4,12 +4,11 @@ import { deleteAccount as deleteAccountRequest } from '@/features/auth/api/delet
 import { login as loginRequest } from '@/features/auth/api/login'
 import { logout as logoutRequest } from '@/features/auth/api/logout'
 import { refresh as refreshRequest } from '@/features/auth/api/refresh'
-import { register as registerRequest } from '@/features/auth/api/register'
 import { type AuthResponse } from '@/features/auth/api/schemas'
 import { AuthContext, type AuthStatus } from '@/hooks/useAuth'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken, setAccessToken } from '@/lib/api/token'
-import { type CurrentUser, type LoginInput, type RegisterInput } from '@/types/auth'
+import { type CurrentUser, type LoginInput } from '@/types/auth'
 
 /** Keeps the access token in memory and restores the session from the refresh cookie. */
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -65,13 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [establishSession],
   )
 
-  const register = useCallback(
-    async (input: RegisterInput) => {
-      establishSession(await registerRequest(input))
-    },
-    [establishSession],
-  )
-
   const logout = useCallback(async () => {
     try {
       await logoutRequest()
@@ -86,8 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession])
 
   const value = useMemo(
-    () => ({ user, status, login, register, logout, deleteAccount }),
-    [user, status, login, register, logout, deleteAccount],
+    () => ({ user, status, login, logout, deleteAccount }),
+    [user, status, login, logout, deleteAccount],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

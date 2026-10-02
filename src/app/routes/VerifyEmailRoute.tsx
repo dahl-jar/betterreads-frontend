@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 
 import { AuthLayout } from '@/app/components/AuthLayout'
+import { ResendVerificationForm } from '@/features/auth/components/ResendVerificationForm'
 import { VerifyEmail } from '@/features/auth/components/VerifyEmail'
 
 export function VerifyEmailRoute() {
@@ -12,9 +13,11 @@ export function VerifyEmailRoute() {
       {token ? (
         <VerifyEmail token={token} />
       ) : (
-        <p role="alert" className="text-sm font-medium text-destructive">
-          This verification link is missing its token. Request a new one from your account.
-        </p>
+        <ResendVerificationForm>
+          <p className="text-sm text-fg-2">
+            Enter your email and we will send you a new verification link.
+          </p>
+        </ResendVerificationForm>
       )}
     </AuthLayout>
   )

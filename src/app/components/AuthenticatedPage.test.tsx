@@ -58,7 +58,6 @@ describe('AuthenticatedPage', () => {
           user: undefined,
           status: 'anonymous',
           login: unusedAction,
-          register: unusedAction,
           logout: unusedAction,
           deleteAccount: unusedAction,
         }}

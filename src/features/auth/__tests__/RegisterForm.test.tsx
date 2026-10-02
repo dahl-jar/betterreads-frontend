@@ -1,8 +1,8 @@
 import { http, HttpResponse } from 'msw'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { setRefreshHandler } from '@/lib/api/client'
-import { clearAccessToken } from '@/lib/api/token'
+import { clearAccessToken, getAccessToken } from '@/lib/api/token'
 import { stubSignedOut } from '@/testing/authHandlers'
 import auth from '@/testing/mocks/auth.json'
 import { server } from '@/testing/msw-server'
@@ -32,16 +32,15 @@ describe('RegisterForm', () => {
     server.use(
       http.post(`${BASE}/register`, async ({ request }) => {
         registerBody = await request.json()
-        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-1' } })
+        return new HttpResponse(null, { status: 201 })
       }),
     )
-    const onSuccess = vi.fn()
-    const { user } = renderWithProviders(<RegisterForm onSuccess={onSuccess} />)
+    const { user } = renderWithProviders(<RegisterForm />)
 
     await fillValidForm(user)
     await user.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
     expect(registerBody).toEqual({
       username: 'darrow',
       email: 'darrow@example.com',
@@ -49,15 +48,45 @@ describe('RegisterForm', () => {
     })
   })
 
+  it('should tell the reader to check their email after registering', async () => {
+    server.use(http.post(`${BASE}/register`, () => new HttpResponse(null, { status: 201 })))
+    const { user } = renderWithProviders(<RegisterForm />)
+
+    await fillValidForm(user)
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Check your email to verify your account, then log in.',
+      ),
+    )
+    expect(screen.getByRole('link', { name: /log in/i })).toHaveAttribute('href', '/login')
+  })
+
+  it('should leave the reader signed out after registering', async () => {
+    server.use(
+      http.post(`${BASE}/register`, () =>
+        HttpResponse.json({ data: { ...auth } }, { status: 201 }),
+      ),
+    )
+    const { user } = renderWithProviders(<RegisterForm />)
+
+    await fillValidForm(user)
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+    expect(getAccessToken()).toBeUndefined()
+  })
+
   it('should reject a short password', async () => {
     let registerCalled = false
     server.use(
       http.post(`${BASE}/register`, () => {
         registerCalled = true
-        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-1' } })
+        return new HttpResponse(null, { status: 201 })
       }),
     )
-    const { user } = renderWithProviders(<RegisterForm onSuccess={vi.fn()} />)
+    const { user } = renderWithProviders(<RegisterForm />)
 
     await user.type(screen.getByLabelText(/username/i), 'darrow')
     await user.type(screen.getByLabelText(/email/i), 'darrow@example.com')
@@ -75,10 +104,10 @@ describe('RegisterForm', () => {
     server.use(
       http.post(`${BASE}/register`, () => {
         registerCalled = true
-        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-1' } })
+        return new HttpResponse(null, { status: 201 })
       }),
     )
-    const { user } = renderWithProviders(<RegisterForm onSuccess={vi.fn()} />)
+    const { user } = renderWithProviders(<RegisterForm />)
 
     await user.type(screen.getByLabelText(/username/i), 'darrow!')
     await user.type(screen.getByLabelText(/email/i), 'darrow@example.com')
@@ -98,10 +127,10 @@ describe('RegisterForm', () => {
     server.use(
       http.post(`${BASE}/register`, () => {
         registerCalled = true
-        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-1' } })
+        return new HttpResponse(null, { status: 201 })
       }),
     )
-    const { user } = renderWithProviders(<RegisterForm onSuccess={vi.fn()} />)
+    const { user } = renderWithProviders(<RegisterForm />)
 
     await user.type(screen.getByLabelText(/username/i), 'darrow')
     await user.type(screen.getByLabelText(/email/i), 'darrow@localhost')
@@ -121,10 +150,10 @@ describe('RegisterForm', () => {
     server.use(
       http.post(`${BASE}/register`, () => {
         registerCalled = true
-        return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-1' } })
+        return new HttpResponse(null, { status: 201 })
       }),
     )
-    const { user } = renderWithProviders(<RegisterForm onSuccess={vi.fn()} />)
+    const { user } = renderWithProviders(<RegisterForm />)
 
     await user.type(screen.getByLabelText(/username/i), 'darrow')
     await user.type(screen.getByLabelText(/email/i), 'darrow@example.com')
@@ -138,13 +167,12 @@ describe('RegisterForm', () => {
 
   it('should show an error when the username is already taken', async () => {
     server.use(http.post(`${BASE}/register`, () => new HttpResponse(null, { status: 409 })))
-    const onSuccess = vi.fn()
-    const { user } = renderWithProviders(<RegisterForm onSuccess={onSuccess} />)
+    const { user } = renderWithProviders(<RegisterForm />)
 
     await fillValidForm(user)
     await user.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
-    expect(onSuccess).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
   })
 })

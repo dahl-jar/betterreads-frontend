@@ -8,15 +8,14 @@ import { Form } from '@/components/ui/form'
 
 import { forgotPassword } from '../api/forgotPassword'
 
+import { emailSchema } from './emailSchema'
 import { TextField } from './TextField'
 
 const NEUTRAL_CONFIRMATION =
   'If that email has an account, a reset link is on its way. Check your inbox.'
 
 const forgotPasswordFormSchema = z.object({
-  email: z
-    .email('Enter a valid email with a domain, like name@example.com')
-    .max(255, 'Email must be at most 255 characters'),
+  email: emailSchema,
 })
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordFormSchema>

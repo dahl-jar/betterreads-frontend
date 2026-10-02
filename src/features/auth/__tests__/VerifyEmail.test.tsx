@@ -27,6 +27,16 @@ describe('VerifyEmail', () => {
     expect(verifyBody).toEqual({ token: 'verify-token-123' })
   })
 
+  it('should link to the login once verified', async () => {
+    server.use(http.post(`${BASE}/verify-email`, () => new HttpResponse(null, { status: 204 })))
+
+    renderWithProviders(<VerifyEmail token="verify-token-123" />)
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: /log in/i })).toHaveAttribute('href', '/login'),
+    )
+  })
+
   it('should allow resend after verification fails', async () => {
     server.use(http.post(`${BASE}/verify-email`, () => new HttpResponse(null, { status: 400 })))
 

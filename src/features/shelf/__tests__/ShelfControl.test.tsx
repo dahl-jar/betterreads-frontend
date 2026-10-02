@@ -40,7 +40,9 @@ function SessionActions() {
       </button>
       <button
         type="button"
-        onClick={() => void login({ identifier: 'mustang', password: 'password' })}
+        onClick={() =>
+          void login({ identifier: 'mustang', password: 'password', rememberMe: false })
+        }
       >
         Sign in test reader
       </button>

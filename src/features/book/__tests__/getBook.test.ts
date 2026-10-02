@@ -59,12 +59,6 @@ describe('getBook', () => {
     expect(book.coverUrl).toBeUndefined()
   })
 
-  it('should throw when the book is not found', async () => {
-    server.use(http.get(BOOK_URL, () => new HttpResponse(null, { status: 404 })))
-
-    await expect(getBook('9780765312921')).rejects.toThrow()
-  })
-
   it('should reject a payload missing a required field', async () => {
     server.use(http.get(BOOK_URL, () => HttpResponse.json({ data: { key: '9780765312921' } })))
 

@@ -1,0 +1,90 @@
+import { http, HttpResponse } from 'msw'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+
+import { setRefreshHandler } from '@/lib/api/client'
+import { clearAccessToken } from '@/lib/api/token'
+import { stubSignedOut } from '@/testing/authHandlers'
+import { server } from '@/testing/msw-server'
+import { renderWithProviders, screen, waitFor } from '@/testing/test-utils'
+
+import { VerifyEmailRoute } from './VerifyEmailRoute'
+
+const BASE = 'http://localhost:8080/api/v1/auth'
+
+async function requestResend(email: string) {
+  const { user } = renderWithProviders(<VerifyEmailRoute />, { route: '/verify-email' })
+  await user.type(screen.getByLabelText(/email/i), email)
+  await user.click(screen.getByRole('button', { name: /resend verification/i }))
+}
+
+afterEach(() => {
+  clearAccessToken()
+  setRefreshHandler(undefined)
+})
+
+beforeEach(stubSignedOut)
+
+describe('VerifyEmailRoute', () => {
+  it('should verify the token from the link', async () => {
+    let verifyBody: unknown
+    server.use(
+      http.post(`${BASE}/verify-email`, async ({ request }) => {
+        verifyBody = await request.json()
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+    renderWithProviders(<VerifyEmailRoute />, { route: '/verify-email?token=verify-token-123' })
+
+    await waitFor(() => expect(screen.getByText(/email verified/i)).toBeInTheDocument())
+    expect(verifyBody).toEqual({ token: 'verify-token-123' })
+  })
+
+  it('should resend verification when the URL has no token', async () => {
+    let resendBody: unknown
+    server.use(
+      http.post(`${BASE}/resend-verification`, async ({ request }) => {
+        resendBody = await request.json()
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+    await requestResend('darrow@example.com')
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/if that email|new link/i),
+    )
+    expect(resendBody).toEqual({ email: 'darrow@example.com' })
+  })
+
+  it('should confirm the resend even when it fails', async () => {
+    server.use(
+      http.post(`${BASE}/resend-verification`, () => new HttpResponse(null, { status: 500 })),
+    )
+
+    await requestResend('darrow@example.com')
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/if that email|new link/i),
+    )
+  })
+
+  it('should reject an address that is not an email', async () => {
+    let resendCalled = false
+    server.use(
+      http.post(`${BASE}/resend-verification`, () => {
+        resendCalled = true
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+    await requestResend('darrow')
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('Enter a valid email with a domain, like name@example.com'),
+      ).toBeInTheDocument(),
+    )
+    expect(resendCalled).toBe(false)
+  })
+})

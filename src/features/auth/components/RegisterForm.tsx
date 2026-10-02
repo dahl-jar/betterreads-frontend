@@ -1,11 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks/useAuth'
+
+import { register } from '../api/register'
 
 import { AuthForm } from './AuthForm'
+import { emailSchema } from './emailSchema'
 import { TextField } from './TextField'
 
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/
@@ -17,9 +21,7 @@ const registerFormSchema = z
       .min(3, 'Username must be at least 3 characters')
       .max(50, 'Username must be at most 50 characters')
       .regex(USERNAME_PATTERN, 'Use only letters, numbers, dot, underscore, or hyphen'),
-    email: z
-      .email('Enter a valid email with a domain, like name@example.com')
-      .max(255, 'Email must be at most 255 characters'),
+    email: emailSchema,
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
@@ -33,12 +35,8 @@ const registerFormSchema = z
 
 type RegisterFormValues = z.infer<typeof registerFormSchema>
 
-type RegisterFormProps = {
-  onSuccess: () => void
-}
-
-export function RegisterForm({ onSuccess }: RegisterFormProps) {
-  const { register } = useAuth()
+export function RegisterForm() {
+  const [registered, setRegistered] = useState(false)
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: { username: '', email: '', password: '', confirmPassword: '' },
@@ -50,7 +48,19 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       email: values.email,
       password: values.password,
     })
-    onSuccess()
+    setRegistered(true)
+  }
+
+  if (registered) {
+    return (
+      <p role="status" className="text-sm text-fg-2">
+        Check your email to verify your account, then{' '}
+        <Link to="/login" className="font-semibold text-brand">
+          log in
+        </Link>
+        .
+      </p>
+    )
   }
 
   return (

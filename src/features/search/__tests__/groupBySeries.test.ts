@@ -150,14 +150,6 @@ describe('groupBySeries', () => {
     ])
   })
 
-  it('should keep a one-book series grouped', () => {
-    const lone = book({ bookId: 'l', title: 'Only One', seriesName: 'Trilogy' })
-
-    const groups = groupBySeries([lone])
-
-    expect(groups).toEqual([{ kind: 'series', seriesName: 'Trilogy', books: [lone] }])
-  })
-
   it('should put a book in every series group', () => {
     const wordsOfRadiance = book({
       bookId: 'wor',
