@@ -20,7 +20,7 @@ export const bookDetailSchema = z.object({
   averageRating: z.number().nullish(),
   ratingCount: z.number().int().nullish(),
   seriesName: z.string().nullish(),
-  seriesPosition: z.number().int().nullish(),
+  seriesPosition: z.number().nullish(),
   series: seriesSchema.optional(),
   subjects: z.array(z.string()),
   awards: z.array(z.string()),

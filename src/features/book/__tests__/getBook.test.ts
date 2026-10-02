@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
+import { ZodError } from 'zod'
 
 import { server } from '@/testing/msw-server'
 
@@ -37,6 +38,17 @@ describe('getBook', () => {
     ])
   })
 
+  it('should parse a decimal series position', async () => {
+    const stormlight = [{ name: 'The Stormlight Archive', position: 2.5 }]
+    const edgedancer = detailBody({ seriesPosition: 2.5, series: stormlight })
+    server.use(http.get(BOOK_URL, () => HttpResponse.json({ data: edgedancer })))
+
+    const book = await getBook('9780765312921')
+
+    expect(book.seriesPosition).toBe(2.5)
+    expect(book.series).toEqual(stormlight)
+  })
+
   it('should parse a sparse incomplete seed with most fields absent', async () => {
     server.use(http.get(BOOK_URL, () => HttpResponse.json({ data: sparseBookDetail })))
 
@@ -56,6 +68,6 @@ describe('getBook', () => {
   it('should reject a payload missing a required field', async () => {
     server.use(http.get(BOOK_URL, () => HttpResponse.json({ data: { key: '9780765312921' } })))
 
-    await expect(getBook('9780765312921')).rejects.toThrow()
+    await expect(getBook('9780765312921')).rejects.toBeInstanceOf(ZodError)
   })
 })

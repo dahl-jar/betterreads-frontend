@@ -110,6 +110,20 @@ describe('BookDetail', () => {
     expect(cosmere).toHaveAttribute('href', '/series/The Cosmere')
   })
 
+  it('should show a decimal series number', () => {
+    const edgedancer = {
+      ...bookDetail,
+      seriesPosition: 2.5,
+      series: [{ name: 'The Stormlight Archive', position: 2.5 }],
+    }
+
+    renderWithProviders(
+      <BookDetail book={edgedancer} seriesHref={seriesHref} authorHref={authorHref} />,
+    )
+
+    expect(screen.getByRole('link', { name: 'The Stormlight Archive #2.5' })).toBeInTheDocument()
+  })
+
   it('should link the primary series when series is empty', () => {
     renderWithProviders(
       <BookDetail

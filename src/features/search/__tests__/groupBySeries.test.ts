@@ -33,7 +33,7 @@ describe('groupBySeries', () => {
     expect(groups).toEqual([{ kind: 'series', seriesName: 'Mistborn', books: [first, second] }])
   })
 
-  it('should order books within a series by seriesPosition when present', () => {
+  it('should order books within a series by position', () => {
     const third = book({
       bookId: '3',
       title: 'Hero of Ages',
@@ -61,6 +61,19 @@ describe('groupBySeries', () => {
         seriesName: 'Mistborn',
         books: [first, second, third],
       },
+    ])
+  })
+
+  it('should place book 2.5 between books 2 and 3', () => {
+    const stormlight = 'The Stormlight Archive'
+    const third = book({ title: 'Oathbringer', seriesName: stormlight, seriesPosition: 3 })
+    const novella = book({ title: 'Edgedancer', seriesName: stormlight, seriesPosition: 2.5 })
+    const second = book({ title: 'Words of Radiance', seriesName: stormlight, seriesPosition: 2 })
+
+    const groups = groupBySeries([third, novella, second])
+
+    expect(groups).toEqual([
+      { kind: 'series', seriesName: stormlight, books: [second, novella, third] },
     ])
   })
 

@@ -9,14 +9,14 @@ const seriesBookSchema = z.object({
   title: z.string(),
   authors: z.array(z.string()),
   coverUrl: z.string().nullish(),
-  position: z.number().int(),
+  position: z.number(),
 })
 
 export type SeriesBook = z.infer<typeof seriesBookSchema>
 
 const bookSeriesSchema = z.object({
   name: z.string(),
-  position: z.number().int(),
+  position: z.number(),
   books: z.array(seriesBookSchema),
 })
 

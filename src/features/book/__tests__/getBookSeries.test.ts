@@ -38,6 +38,15 @@ describe('getBookSeries', () => {
     expect(series).toEqual([coverless])
   })
 
+  it('should parse decimal positions', async () => {
+    const decimal = { ...bookSeries, position: 0.5, books: [{ ...goldenSon!, position: 2.5 }] }
+    stubSeries([decimal])
+
+    const series = await getBookSeries(RED_RISING_KEY)
+
+    expect(series).toEqual([decimal])
+  })
+
   it('should reject a series book with no key', async () => {
     stubSeries([{ ...bookSeries, books: [without(goldenSon!, 'key')] }])
 

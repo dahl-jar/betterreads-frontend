@@ -10,7 +10,7 @@ export const bookSearchDocumentSchema = z.object({
   title: z.string(),
   subtitle: z.string().nullish(),
   seriesName: z.string().nullish(),
-  seriesPosition: z.number().int().nullish(),
+  seriesPosition: z.number().nullish(),
   series: seriesSchema.optional(),
   authors: z.array(z.string()),
   subjects: z.array(z.string()),

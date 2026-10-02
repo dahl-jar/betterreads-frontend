@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
+import { ZodError } from 'zod'
 
 import searchHit from '@/testing/mocks/search-hit.json'
 import { server } from '@/testing/msw-server'
@@ -41,6 +42,17 @@ describe('searchBooks', () => {
     expect(result.hits[0]?.series).toBeUndefined()
   })
 
+  it('should parse a decimal series position', async () => {
+    const dune = [{ name: 'Dune', position: 2.5 }]
+    const hit = { ...defaultHit(), seriesPosition: 2.5, series: dune }
+    server.use(http.get(SEARCH_URL, () => HttpResponse.json(pagedBody([hit]))))
+
+    const result = await searchBooks({ query: 'dune' })
+
+    expect(result.hits[0]?.seriesPosition).toBe(2.5)
+    expect(result.hits[0]?.series).toEqual(dune)
+  })
+
   it('should send the search parameters', async () => {
     let requestUrl = ''
     server.use(
@@ -61,6 +73,6 @@ describe('searchBooks', () => {
   it('should reject a hit missing a required field', async () => {
     server.use(http.get(SEARCH_URL, () => HttpResponse.json(pagedBody([{ bookId: 'x' }]))))
 
-    await expect(searchBooks({ query: 'dune' })).rejects.toThrow()
+    await expect(searchBooks({ query: 'dune' })).rejects.toBeInstanceOf(ZodError)
   })
 })

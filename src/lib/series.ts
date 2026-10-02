@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const seriesSchema = z.array(z.object({ name: z.string(), position: z.number().int() }))
+export const seriesSchema = z.array(z.object({ name: z.string(), position: z.number() }))
 
 type SeriesEntry = { name: string; position: number | undefined }
 
