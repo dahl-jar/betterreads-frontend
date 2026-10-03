@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 
 import { Avatar } from '@/components/Avatar'
+import { LoginLink } from '@/components/LoginLink'
 import { Markdown } from '@/components/Markdown'
 import { StarRating } from '@/components/StarRating'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -52,12 +52,9 @@ export function BookReviews({
 
       <div className="mt-6 flex min-w-0 flex-col gap-6">
         {signedIn ? null : (
-          <Link
-            to="/login"
-            className="inline-flex self-start rounded-md border border-rule px-4 py-2 text-sm font-semibold text-fg hover:border-fg-3"
-          >
+          <LoginLink className="inline-flex self-start rounded-md border border-rule px-4 py-2 text-sm font-semibold text-fg hover:border-fg-3">
             Log in to rate this book
-          </Link>
+          </LoginLink>
         )}
 
         {status === 'loading' ? <ReviewsSkeleton /> : null}

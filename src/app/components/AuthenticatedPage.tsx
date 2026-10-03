@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
+import { loginState } from '@/lib/returnPath'
 
 type PageWidth = 'medium' | 'wide'
 
@@ -18,6 +19,7 @@ const PAGE_WIDTHS: Record<PageWidth, string> = {
 
 export function AuthenticatedPage({ width = 'medium', children }: AuthenticatedPageProps) {
   const { status } = useAuth()
+  const location = useLocation()
   const pageClass = `mx-auto w-full flex-1 px-5 py-8 lg:py-12 ${PAGE_WIDTHS[width]}`
 
   if (status === 'loading') {
@@ -29,7 +31,7 @@ export function AuthenticatedPage({ width = 'medium', children }: AuthenticatedP
   }
 
   if (status === 'anonymous') {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace state={loginState(location)} />
   }
 
   return <main className={pageClass}>{children}</main>

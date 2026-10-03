@@ -3,21 +3,16 @@ import { Link } from 'react-router-dom'
 import { BookCover } from '@/components/BookCover'
 import { StarRating } from '@/components/StarRating'
 import { bookPath } from '@/lib/bookPath'
-import { formatAuthors } from '@/lib/formatAuthors'
 
-import { type ShelfEntry } from '../api/shelfSchemas'
 import { useShelfRating } from '../hooks/useShelfRating'
 
 import { FavoriteMark } from './FavoriteMark'
+import { Highlight, HighlightedAuthors } from './Highlight'
+import { RatingError } from './RatingError'
 import { ShelfControl } from './ShelfControl'
+import { type ShelfItemProps } from './shelfItemProps'
 
-type ShelfCardProps = {
-  entry: ShelfEntry
-  onRate: (rating: number) => Promise<void>
-  onEntryChange: (entry: ShelfEntry | undefined) => void
-}
-
-export function ShelfCard({ entry, onRate, onEntryChange }: ShelfCardProps) {
+export function ShelfCard({ entry, query, onRate, onEntryChange }: ShelfItemProps) {
   const { rating, error, rate } = useShelfRating(entry.myRating ?? 0, onRate)
 
   return (
@@ -29,9 +24,11 @@ export function ShelfCard({ entry, onRate, onEntryChange }: ShelfCardProps) {
           className="aspect-[2/3] w-full rounded-[3px] shadow-cover"
         />
         <p className="mt-3 line-clamp-2 font-title text-sm font-bold leading-snug text-fg group-hover:text-brand">
-          {entry.title}
+          <Highlight text={entry.title} query={query} />
         </p>
-        <p className="mt-0.5 truncate text-xs text-fg-3">{formatAuthors(entry.authors)}</p>
+        <p className="mt-0.5 truncate text-xs text-fg-3">
+          <HighlightedAuthors authors={entry.authors} query={query} />
+        </p>
       </Link>
       <div className="mt-2 flex h-5 items-center justify-between">
         <StarRating value={rating} onRate={rate} size="md" />
@@ -41,11 +38,7 @@ export function ShelfCard({ entry, onRate, onEntryChange }: ShelfCardProps) {
           </span>
         ) : null}
       </div>
-      {error ? (
-        <p role="alert" className="mt-2 text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
+      <RatingError error={error} />
       <div className="mt-2">
         <ShelfControl
           bookKey={entry.key}

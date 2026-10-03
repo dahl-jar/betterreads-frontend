@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 
 import { ChevronDownIcon, HeartIcon, RemoveIcon, WantIcon } from '@/components/icons'
+import { LoginLink } from '@/components/LoginLink'
 import { useDismiss } from '@/hooks/useDismiss'
 
 import { changeFavorite } from '../api/changeFavorite'
@@ -108,12 +108,9 @@ export function ShelfControl({
 
   if (authStatus !== 'authenticated') {
     return (
-      <Link
-        to="/login"
-        className="block w-full rounded-md bg-accent px-5 py-2.5 text-center text-sm font-semibold text-on-accent hover:bg-accent-hover"
-      >
+      <LoginLink className="block w-full rounded-md bg-accent px-5 py-2.5 text-center text-sm font-semibold text-on-accent hover:bg-accent-hover">
         Log in to track this book
-      </Link>
+      </LoginLink>
     )
   }
 

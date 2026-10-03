@@ -1,17 +1,17 @@
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
+import { LoginLink } from '@/components/LoginLink'
 import { SearchForm } from '@/features/search/components/SearchForm'
 import { MyBooksLink } from '@/features/shelf/components/MyBooksLink'
 import { useMyShelfTotal } from '@/features/shelf/hooks/useMyShelfTotal'
 import { useAuth } from '@/hooks/useAuth'
+import { HOME_PATH } from '@/lib/homePath'
 import { SHELF_PATH } from '@/lib/shelfPath'
 
 import { SEARCH_PATH, searchPath } from '../searchPath'
 
 import { AccountMenu } from './AccountMenu'
 import { Wordmark } from './Wordmark'
-
-const HOME_PATH = '/'
 
 export function Header() {
   const { status, user } = useAuth()
@@ -48,12 +48,9 @@ export function Header() {
             </>
           ) : (
             <>
-              <Link
-                to="/login"
-                className="hidden px-3 py-2 text-fg no-underline hover:text-brand sm:block"
-              >
+              <LoginLink className="hidden px-3 py-2 text-fg no-underline hover:text-brand sm:block">
                 Log in
-              </Link>
+              </LoginLink>
               <Link
                 to="/register"
                 className="rounded-md bg-accent px-4 py-2 text-on-accent no-underline hover:bg-accent-hover"

@@ -20,6 +20,7 @@ import { READING_STATUS_LABELS } from '../utils/readingStatusLabels'
 import { countFor, type ShelfFilter, shelfFilterPath } from '../utils/shelfFilters'
 
 import { MonthCalendar } from './MonthCalendar'
+import { ViewToggle } from './ViewToggle'
 import { YearCalendar } from './YearCalendar'
 
 type ReadingStatsProps = {
@@ -95,19 +96,7 @@ export function ReadingStats({ entries, today }: ReadingStatsProps) {
               <span className="text-fg-2">{bookNoun(readThisYear)} so far this year</span>
             </p>
           </div>
-          <div className="flex self-start divide-x divide-rule overflow-hidden rounded-md border border-rule">
-            {VIEW_OPTIONS.map((option) => (
-              <button
-                key={option.view}
-                type="button"
-                onClick={() => setView(option.view)}
-                aria-pressed={view === option.view}
-                className={`px-3 py-1 text-sm font-semibold ${view === option.view ? 'bg-sunken text-fg' : 'text-fg-3 hover:text-fg'}`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          <ViewToggle options={VIEW_OPTIONS} view={view} onView={setView} className="self-start" />
           <FinishedList name={name} finished={finished} />
         </div>
         <div className="min-w-0 bg-raised p-6 sm:col-span-4 lg:col-span-3">

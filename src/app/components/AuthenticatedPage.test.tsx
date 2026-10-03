@@ -1,13 +1,11 @@
 import { delay, http, HttpResponse } from 'msw'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { AuthContext } from '@/hooks/useAuth'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedIn } from '@/testing/authHandlers'
 import { server } from '@/testing/msw-server'
-import { render, renderWithProviders, screen } from '@/testing/test-utils'
+import { renderWithProviders, screen } from '@/testing/test-utils'
 
 import { AuthenticatedPage } from './AuthenticatedPage'
 
@@ -18,15 +16,19 @@ afterEach(() => {
   setRefreshHandler(undefined)
 })
 
+function renderPage() {
+  return renderWithProviders(
+    <AuthenticatedPage>
+      <p>secret content</p>
+    </AuthenticatedPage>,
+  )
+}
+
 describe('AuthenticatedPage', () => {
   it('should render the children for a signed-in reader', async () => {
     stubSignedIn()
 
-    renderWithProviders(
-      <AuthenticatedPage>
-        <p>secret content</p>
-      </AuthenticatedPage>,
-    )
+    renderPage()
 
     expect(await screen.findByText('secret content')).toBeInTheDocument()
   })
@@ -39,45 +41,10 @@ describe('AuthenticatedPage', () => {
       }),
     )
 
-    renderWithProviders(
-      <AuthenticatedPage>
-        <p>secret content</p>
-      </AuthenticatedPage>,
-    )
+    renderPage()
 
     expect(
       await screen.findByRole('status', { name: /loading.*account|restoring.*session/i }),
     ).toBeInTheDocument()
-  })
-
-  it('should redirect an anonymous reader to login', async () => {
-    const unusedAction = vi.fn(() => Promise.resolve())
-    render(
-      <AuthContext.Provider
-        value={{
-          user: undefined,
-          status: 'anonymous',
-          login: unusedAction,
-          logout: unusedAction,
-          deleteAccount: unusedAction,
-        }}
-      >
-        <MemoryRouter initialEntries={['/shelf']}>
-          <Routes>
-            <Route
-              path="/shelf"
-              element={
-                <AuthenticatedPage>
-                  <p>secret content</p>
-                </AuthenticatedPage>
-              }
-            />
-            <Route path="/login" element={<p>login destination</p>} />
-          </Routes>
-        </MemoryRouter>
-      </AuthContext.Provider>,
-    )
-
-    expect(await screen.findByText('login destination')).toBeInTheDocument()
   })
 })

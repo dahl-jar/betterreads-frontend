@@ -1,7 +1,14 @@
 import shelfEntry from './mocks/shelf-entry.json'
 
 function finished(key: string, title: string, finishedAt: string) {
-  return { ...shelfEntry, key, title, status: 'FINISHED' as const, finishedAt }
+  return {
+    ...shelfEntry,
+    key,
+    title,
+    authors: ['Pierce Brown'],
+    status: 'FINISHED' as const,
+    finishedAt,
+  }
 }
 
 export const RED_RISING = finished('OL2W', 'Red Rising', '2026-06-05')

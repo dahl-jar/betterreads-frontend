@@ -4,24 +4,19 @@ import { BookCover } from '@/components/BookCover'
 import { StarIcon } from '@/components/icons'
 import { StarRating } from '@/components/StarRating'
 import { bookPath } from '@/lib/bookPath'
-import { formatAuthors } from '@/lib/formatAuthors'
 import { formatRating } from '@/lib/formatRating'
 
-import { type ShelfEntry } from '../api/shelfSchemas'
 import { useShelfRating } from '../hooks/useShelfRating'
 import { shelfDateLine } from '../utils/shelfDateLine'
 import { SHELF_LIST_COLUMNS } from '../utils/shelfListColumns'
 
 import { FavoriteMark } from './FavoriteMark'
+import { Highlight, HighlightedAuthors } from './Highlight'
+import { RatingError } from './RatingError'
 import { ShelfControl } from './ShelfControl'
+import { type ShelfItemProps } from './shelfItemProps'
 
-type ShelfRowProps = {
-  entry: ShelfEntry
-  onRate: (rating: number) => Promise<void>
-  onEntryChange: (entry: ShelfEntry | undefined) => void
-}
-
-export function ShelfRow({ entry, onRate, onEntryChange }: ShelfRowProps) {
+export function ShelfRow({ entry, query, onRate, onEntryChange }: ShelfItemProps) {
   const { rating, error, rate } = useShelfRating(entry.myRating ?? 0, onRate)
   const { verb, date } = shelfDateLine(entry)
   const path = bookPath(entry.key)
@@ -38,16 +33,19 @@ export function ShelfRow({ entry, onRate, onEntryChange }: ShelfRowProps) {
         />
       </Link>
       <div className="min-w-0">
-        <p className="flex items-center gap-2">
-          <Link
-            to={path}
-            className="line-clamp-2 font-title text-lg font-bold leading-snug text-fg no-underline hover:text-brand"
-          >
-            {entry.title}
+        <p className="font-title text-lg font-bold leading-snug">
+          <Link to={path} className="text-fg no-underline hover:text-brand">
+            <Highlight text={entry.title} query={query} />
           </Link>
-          {entry.favorite ? <FavoriteMark /> : null}
+          {entry.favorite ? (
+            <span className="ml-2 inline-flex align-[-0.1em]">
+              <FavoriteMark />
+            </span>
+          ) : null}
         </p>
-        <p className="mt-1 truncate text-sm text-fg-2">{formatAuthors(entry.authors)}</p>
+        <p className="mt-1 truncate text-sm text-fg-2">
+          <HighlightedAuthors authors={entry.authors} query={query} />
+        </p>
         {entry.averageRating ? (
           <p className="mt-2 flex items-center gap-1 text-xs text-fg-3">
             <StarIcon className="size-3 text-star" />
@@ -57,11 +55,7 @@ export function ShelfRow({ entry, onRate, onEntryChange }: ShelfRowProps) {
             Hardcover
           </p>
         ) : null}
-        {error ? (
-          <p role="alert" className="mt-2 text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
+        <RatingError error={error} />
       </div>
       <div className="order-4 col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2 md:contents">
         <div className="order-first w-48 md:order-5 md:w-auto">

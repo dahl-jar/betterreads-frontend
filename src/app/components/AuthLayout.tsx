@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+
+import { keptLoginState } from '@/lib/returnPath'
 
 import { CoverRows } from './CoverRows'
 import { Wordmark } from './Wordmark'
@@ -16,6 +18,7 @@ type AuthLayoutProps = {
 }
 
 export function AuthLayout({ title, children, backdrop = false, footer }: AuthLayoutProps) {
+  const returnState = keptLoginState(useLocation().state)
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-sunken px-4 py-16">
       {backdrop ? (
@@ -35,6 +38,7 @@ export function AuthLayout({ title, children, backdrop = false, footer }: AuthLa
             <span>{footer.prompt}</span>
             <Link
               to={footer.to}
+              state={returnState}
               className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border border-rule bg-raised px-3 text-sm font-semibold text-fg no-underline transition-colors hover:border-fg-3"
             >
               {footer.linkLabel}

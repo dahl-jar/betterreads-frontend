@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { ApiError } from '@/lib/api/client'
+import { keptLoginState } from '@/lib/returnPath'
 
 import { AuthForm } from './AuthForm'
 import { TextField } from './TextField'
@@ -29,6 +30,7 @@ type LoginFormProps = {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const { login } = useAuth()
+  const returnState = keptLoginState(useLocation().state)
   const [unverified, setUnverified] = useState(false)
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -77,6 +79,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         aside={
           <Link
             to="/forgot-password"
+            state={returnState}
             className="text-sm font-semibold text-brand underline-offset-2 hover:underline"
           >
             Forgot password?

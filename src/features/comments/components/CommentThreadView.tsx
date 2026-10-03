@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 
 import { Avatar } from '@/components/Avatar'
+import { LoginLink } from '@/components/LoginLink'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDate } from '@/lib/formatDate'
@@ -93,9 +93,9 @@ export function CommentThreadView({
         ) : null}
         {authStatus === 'anonymous' ? (
           <p className="text-sm text-fg-2">
-            <Link to="/login" className="font-semibold text-fg underline underline-offset-2">
+            <LoginLink className="font-semibold text-fg underline underline-offset-2">
               Log in
-            </Link>{' '}
+            </LoginLink>{' '}
             to comment.
           </p>
         ) : null}

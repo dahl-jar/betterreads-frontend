@@ -28,6 +28,7 @@ export const ICON_SHAPES = {
   ),
   warning: <path d="M10 3.5 17.5 16.5h-15zM10 8.5v3.5M10 14.3h.01" />,
   list: <path d="M3.5 5.5h13M3.5 10h13M3.5 14.5h13" />,
+  clear: <path d="m6 6 8 8m0-8-8 8" />,
   grid: (
     <>
       <rect x="3.5" y="3.5" width="5" height="5" rx="1" />

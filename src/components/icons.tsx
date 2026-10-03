@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, SVGProps } from 'react'
 
 import { ICON_SHAPES } from './iconShapes'
 
@@ -6,31 +6,55 @@ type IconProps = {
   className?: string | undefined
 }
 
+type PaintedIconProps = IconProps & { children: ReactNode }
+
 const VIEW_BOX = '0 0 20 20'
 const STROKE_WIDTH = 1.75
 
-function StrokeIcon({ className, children }: IconProps & { children: ReactNode }) {
+const STROKE_PAINT: SVGProps<SVGSVGElement> = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: STROKE_WIDTH,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+}
+
+const FILL_PAINT: SVGProps<SVGSVGElement> = { fill: 'currentColor' }
+
+function IconSvg({
+  className,
+  children,
+  paint,
+}: PaintedIconProps & { paint: SVGProps<SVGSVGElement> }) {
   return (
-    <svg
-      viewBox={VIEW_BOX}
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={STROKE_WIDTH}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg viewBox={VIEW_BOX} aria-hidden="true" className={className} {...paint}>
       {children}
     </svg>
   )
 }
 
-function FillIcon({ className, children }: IconProps & { children: ReactNode }) {
+function StrokeIcon({ className, children }: PaintedIconProps) {
   return (
-    <svg viewBox={VIEW_BOX} aria-hidden="true" className={className} fill="currentColor">
+    <IconSvg className={className} paint={STROKE_PAINT}>
       {children}
-    </svg>
+    </IconSvg>
+  )
+}
+
+function FillIcon({ className, children }: PaintedIconProps) {
+  return (
+    <IconSvg className={className} paint={FILL_PAINT}>
+      {children}
+    </IconSvg>
+  )
+}
+
+function CircledIcon({ className, children }: PaintedIconProps) {
+  return (
+    <StrokeIcon className={className}>
+      <circle cx="10" cy="10" r="6.5" />
+      {children}
+    </StrokeIcon>
   )
 }
 
@@ -81,6 +105,10 @@ export function SearchIcon({ className }: IconProps) {
       <path d="m13.5 13.5 3.5 3.5" />
     </StrokeIcon>
   )
+}
+
+export function ClearIcon({ className }: IconProps) {
+  return <ShapeIcon shape="clear" className={className} />
 }
 
 export function ChevronLeftIcon({ className }: IconProps) {
@@ -142,28 +170,25 @@ export function WantIcon({ className }: IconProps) {
 
 export function ReadingIcon({ className }: IconProps) {
   return (
-    <StrokeIcon className={className}>
-      <circle cx="10" cy="10" r="6.5" />
+    <CircledIcon className={className}>
       <path d="M10 3.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none" />
-    </StrokeIcon>
+    </CircledIcon>
   )
 }
 
 export function ReadIcon({ className }: IconProps) {
   return (
-    <StrokeIcon className={className}>
-      <circle cx="10" cy="10" r="6.5" />
+    <CircledIcon className={className}>
       <path d="m7 10.2 2 2 4-4.4" />
-    </StrokeIcon>
+    </CircledIcon>
   )
 }
 
 export function DroppedIcon({ className }: IconProps) {
   return (
-    <StrokeIcon className={className}>
-      <circle cx="10" cy="10" r="6.5" />
+    <CircledIcon className={className}>
       <path d="m7.6 7.6 4.8 4.8m0-4.8-4.8 4.8" />
-    </StrokeIcon>
+    </CircledIcon>
   )
 }
 
