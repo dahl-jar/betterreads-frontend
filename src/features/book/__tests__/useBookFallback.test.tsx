@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { holdResponse } from '@/testing/holdResponse'
 import { server } from '@/testing/msw-server'
 
 import { useBook } from '../hooks/useBook'
@@ -52,6 +53,23 @@ function detail(key: string, complete: boolean, title = 'A Book') {
   }
 }
 
+function countIncompletePolls() {
+  const requests = { count: 0 }
+  server.use(
+    http.get(`${API_BASE_URL}/key-1`, () => {
+      requests.count += 1
+      return HttpResponse.json({ data: detail('key-1', false) })
+    }),
+  )
+  return requests
+}
+
+async function failStream() {
+  await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
+  vi.useFakeTimers({ loopLimit: POLL_TIMER_LOOP_LIMIT })
+  act(() => FakeEventSource.instances[0]?.fail())
+}
+
 afterEach(() => {
   FakeEventSource.instances = []
   vi.useRealTimers()
@@ -95,18 +113,12 @@ describe('useBook update fallback', () => {
   it('should space incomplete polls five seconds apart', async () => {
     vi.stubGlobal('EventSource', FakeEventSource)
     const timeoutSpy = vi.spyOn(globalThis, 'setTimeout')
-    let requestCount = 0
-    server.use(
-      http.get(`${API_BASE_URL}/key-1`, () => {
-        requestCount += 1
-        return HttpResponse.json({ data: detail('key-1', false) })
-      }),
-    )
+    const requests = countIncompletePolls()
 
     const { result, unmount } = renderHook(() => useBook('key-1'))
     await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
     act(() => FakeEventSource.instances[0]?.fail())
-    await waitFor(() => expect(requestCount).toBe(2))
+    await waitFor(() => expect(requests.count).toBe(2))
 
     expect(result.current.book?.complete).toBe(false)
     expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), POLL_INTERVAL_MS)
@@ -117,14 +129,8 @@ describe('useBook update fallback', () => {
     vi.stubGlobal('EventSource', FakeEventSource)
     let requestCount = 0
     let pollSignal: AbortSignal | undefined
-    let markPollStarted: () => void = () => undefined
-    let releasePoll: () => void = () => undefined
-    const pollStarted = new Promise<void>((resolve) => {
-      markPollStarted = resolve
-    })
-    const heldPoll = new Promise<void>((resolve) => {
-      releasePoll = resolve
-    })
+    const pollStarted = holdResponse()
+    const heldPoll = holdResponse()
     server.use(
       http.get(`${API_BASE_URL}/key-1`, async ({ request }) => {
         requestCount += 1
@@ -132,61 +138,45 @@ describe('useBook update fallback', () => {
           return HttpResponse.json({ data: detail('key-1', false) })
         }
         pollSignal = request.signal
-        markPollStarted()
-        await heldPoll
+        pollStarted.release()
+        await heldPoll.held
         return HttpResponse.json({ data: detail('key-1', false) })
       }),
     )
 
     const { unmount } = renderHook(() => useBook('key-1'))
-    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
-    vi.useFakeTimers({ loopLimit: POLL_TIMER_LOOP_LIMIT })
-    act(() => FakeEventSource.instances[0]?.fail())
+    await failStream()
     await vi.waitFor(() => expect(requestCount).toBe(2))
-    await pollStarted
+    await pollStarted.held
 
     unmount()
     expect(pollSignal?.aborted).toBe(true)
-    releasePoll()
+    heldPoll.release()
     await act(async () => vi.runAllTimersAsync())
     expect(requestCount).toBe(2)
   })
 
   it('should clear a scheduled fallback poll when the hook unmounts', async () => {
     vi.stubGlobal('EventSource', FakeEventSource)
-    let requestCount = 0
-    server.use(
-      http.get(`${API_BASE_URL}/key-1`, () => {
-        requestCount += 1
-        return HttpResponse.json({ data: detail('key-1', false) })
-      }),
-    )
+    const requests = countIncompletePolls()
 
     const { unmount } = renderHook(() => useBook('key-1'))
-    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
-    vi.useFakeTimers({ loopLimit: POLL_TIMER_LOOP_LIMIT })
-    act(() => FakeEventSource.instances[0]?.fail())
-    await vi.waitFor(() => expect(requestCount).toBe(2))
+    await failStream()
+    await vi.waitFor(() => expect(requests.count).toBe(2))
     await act(async () => vi.advanceTimersByTimeAsync(0))
 
     unmount()
     expect(vi.getTimerCount()).toBe(0)
     await act(async () => vi.runAllTimersAsync())
-    expect(requestCount).toBe(2)
+    expect(requests.count).toBe(2)
   })
 
   it('should abort the old fallback poll when the book key changes', async () => {
     vi.stubGlobal('EventSource', FakeEventSource)
     let oldRequestCount = 0
     let oldPollSignal: AbortSignal | undefined
-    let markOldPollStarted: () => void = () => undefined
-    let releaseOldPoll: () => void = () => undefined
-    const oldPollStarted = new Promise<void>((resolve) => {
-      markOldPollStarted = resolve
-    })
-    const heldOldPoll = new Promise<void>((resolve) => {
-      releaseOldPoll = resolve
-    })
+    const oldPollStarted = holdResponse()
+    const heldOldPoll = holdResponse()
     server.use(
       http.get(`${API_BASE_URL}/key-1`, async ({ request }) => {
         oldRequestCount += 1
@@ -194,8 +184,8 @@ describe('useBook update fallback', () => {
           return HttpResponse.json({ data: detail('key-1', false) })
         }
         oldPollSignal = request.signal
-        markOldPollStarted()
-        await heldOldPoll
+        oldPollStarted.release()
+        await heldOldPoll.held
         return HttpResponse.json({ data: detail('key-1', true, 'Old Book') })
       }),
       http.get(`${API_BASE_URL}/key-2`, () =>
@@ -206,15 +196,13 @@ describe('useBook update fallback', () => {
     const { rerender, result } = renderHook(({ bookKey }) => useBook(bookKey), {
       initialProps: { bookKey: 'key-1' },
     })
-    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
-    vi.useFakeTimers({ loopLimit: POLL_TIMER_LOOP_LIMIT })
-    act(() => FakeEventSource.instances[0]?.fail())
+    await failStream()
     await vi.waitFor(() => expect(oldRequestCount).toBe(2))
-    await oldPollStarted
+    await oldPollStarted.held
 
     rerender({ bookKey: 'key-2' })
     expect(oldPollSignal?.aborted).toBe(true)
-    releaseOldPoll()
+    heldOldPoll.release()
     await act(async () => vi.runAllTimersAsync())
     expect(result.current.book?.key).toBe('key-2')
     expect(oldRequestCount).toBe(2)
@@ -234,9 +222,7 @@ describe('useBook update fallback', () => {
     )
 
     renderHook(() => useBook('key-1'))
-    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
-    vi.useFakeTimers({ loopLimit: POLL_TIMER_LOOP_LIMIT })
-    act(() => FakeEventSource.instances[0]?.fail())
+    await failStream()
     await act(async () => vi.runAllTimersAsync())
 
     expect(requestCount).toBe(1 + POLL_ATTEMPT_LIMIT)
@@ -245,13 +231,7 @@ describe('useBook update fallback', () => {
 
   it('should not poll after a successful stream update', async () => {
     vi.stubGlobal('EventSource', FakeEventSource)
-    let requestCount = 0
-    server.use(
-      http.get(`${API_BASE_URL}/key-1`, () => {
-        requestCount += 1
-        return HttpResponse.json({ data: detail('key-1', false) })
-      }),
-    )
+    const requests = countIncompletePolls()
 
     const { result } = renderHook(() => useBook('key-1'))
     await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
@@ -260,7 +240,7 @@ describe('useBook update fallback', () => {
     await act(async () => vi.runAllTimersAsync())
 
     expect(result.current.book?.complete).toBe(true)
-    expect(requestCount).toBe(1)
+    expect(requests.count).toBe(1)
   })
 
   it('should poll when EventSource cannot be constructed', async () => {

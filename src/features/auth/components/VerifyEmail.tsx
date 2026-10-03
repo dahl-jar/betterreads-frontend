@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { Button } from '@/components/ui/button'
+import { SHELF_PATH } from '@/lib/shelfPath'
+
 import { verifyEmail } from '../api/verifyEmail'
 
+import { AuthStatus } from './AuthStatus'
 import { ResendVerificationForm } from './ResendVerificationForm'
 
 type VerificationState = 'verifying' | 'verified' | 'failed'
@@ -42,20 +46,20 @@ export function VerifyEmail({ token }: VerifyEmailProps) {
 
   if (state === 'verified') {
     return (
-      <p className="text-sm font-medium text-read">
-        Email verified.{' '}
-        <Link to="/login" className="font-semibold text-brand">
-          Log in
-        </Link>
-      </p>
+      <div className="space-y-5">
+        <AuthStatus tone="success">Email verified. You are all set.</AuthStatus>
+        <Button asChild className="w-full no-underline">
+          <Link to={SHELF_PATH}>Go to My books</Link>
+        </Button>
+      </div>
     )
   }
 
   return (
     <ResendVerificationForm>
-      <p className="text-sm font-medium text-destructive">
+      <AuthStatus tone="error">
         We couldn&apos;t verify that link. It may be invalid or expired. Request a new one below.
-      </p>
+      </AuthStatus>
     </ResendVerificationForm>
   )
 }

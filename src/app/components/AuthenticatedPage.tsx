@@ -4,21 +4,25 @@ import { Navigate } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
 
+type PageWidth = 'medium' | 'wide'
+
 type AuthenticatedPageProps = {
+  width?: PageWidth
   children: ReactNode
 }
 
-export function AuthenticatedPage({ children }: AuthenticatedPageProps) {
+const PAGE_WIDTHS: Record<PageWidth, string> = {
+  medium: 'max-w-4xl',
+  wide: 'max-w-6xl',
+}
+
+export function AuthenticatedPage({ width = 'medium', children }: AuthenticatedPageProps) {
   const { status } = useAuth()
+  const pageClass = `mx-auto w-full flex-1 px-5 py-8 lg:py-12 ${PAGE_WIDTHS[width]}`
 
   if (status === 'loading') {
     return (
-      <main
-        className="mx-auto w-full max-w-2xl flex-1 px-6 py-12"
-        role="status"
-        aria-label="Loading account"
-        aria-busy="true"
-      >
+      <main className={pageClass} role="status" aria-label="Loading account" aria-busy="true">
         <Skeleton className="h-8 w-40" />
       </main>
     )
@@ -28,5 +32,5 @@ export function AuthenticatedPage({ children }: AuthenticatedPageProps) {
     return <Navigate to="/login" replace />
   }
 
-  return <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">{children}</main>
+  return <main className={pageClass}>{children}</main>
 }

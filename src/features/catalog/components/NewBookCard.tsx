@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { BookCover } from '@/components/BookCover'
+import { bookPath } from '@/lib/bookPath'
 
 import { type BookCard } from '../api/getBookList'
 
@@ -13,7 +14,7 @@ export function NewBookCard({ card }: NewBookCardProps) {
 
   return (
     <Link
-      to={`/books/${card.key}`}
+      to={bookPath(card.key)}
       className="catalogue-card hidden -rotate-2 text-fg no-underline md:block"
     >
       <p className="border-b border-rule pb-2 font-title text-xs font-bold uppercase tracking-[0.12em] text-brand">

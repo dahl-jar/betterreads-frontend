@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { ICON_SHAPES } from './iconShapes'
+
 type IconProps = {
   className?: string | undefined
 }
@@ -30,6 +32,46 @@ function FillIcon({ className, children }: IconProps & { children: ReactNode }) 
       {children}
     </svg>
   )
+}
+
+function ShapeIcon({ shape, className }: IconProps & { shape: keyof typeof ICON_SHAPES }) {
+  return <StrokeIcon className={className}>{ICON_SHAPES[shape]}</StrokeIcon>
+}
+
+export function BooksIcon({ className }: IconProps) {
+  return <ShapeIcon shape="books" className={className} />
+}
+
+export function SettingsIcon({ className }: IconProps) {
+  return <ShapeIcon shape="settings" className={className} />
+}
+
+export function HelpIcon({ className }: IconProps) {
+  return <ShapeIcon shape="help" className={className} />
+}
+
+export function LogoutIcon({ className }: IconProps) {
+  return <ShapeIcon shape="logout" className={className} />
+}
+
+export function CopyIcon({ className }: IconProps) {
+  return <ShapeIcon shape="copy" className={className} />
+}
+
+export function MailIcon({ className }: IconProps) {
+  return <ShapeIcon shape="mail" className={className} />
+}
+
+export function WarningIcon({ className }: IconProps) {
+  return <ShapeIcon shape="warning" className={className} />
+}
+
+export function ListIcon({ className }: IconProps) {
+  return <ShapeIcon shape="list" className={className} />
+}
+
+export function GridIcon({ className }: IconProps) {
+  return <ShapeIcon shape="grid" className={className} />
 }
 
 export function SearchIcon({ className }: IconProps) {

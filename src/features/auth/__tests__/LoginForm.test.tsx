@@ -12,7 +12,7 @@ import { LoginForm } from '../components/LoginForm'
 
 const BASE = 'http://localhost:8080/api/v1/auth'
 
-const CREDENTIALS = { identifier: 'darrow@example.com', password: 'opensesame' }
+const CREDENTIALS = { identifier: 'user@example.com', password: 'opensesame' }
 
 const USUAL_ERROR = 'Email, username, or password is incorrect. Try again.'
 
@@ -62,17 +62,17 @@ afterEach(() => {
 beforeEach(stubSignedOut)
 
 describe('LoginForm', () => {
-  it('should leave "Remember me" off by default', async () => {
+  it('should keep Remember me ticked by default', async () => {
     const loginBody = captureLoginBody()
     const { user, onSuccess } = renderForm()
 
     await submit(user)
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
-    expect(loginBody()).toEqual({ ...CREDENTIALS, rememberMe: false })
+    expect(loginBody()).toEqual({ ...CREDENTIALS, rememberMe: true })
   })
 
-  it('should send "Remember me" when the box is ticked', async () => {
+  it('should turn Remember me off when the box is unticked', async () => {
     const loginBody = captureLoginBody()
     const { user, onSuccess } = renderForm()
 
@@ -80,7 +80,7 @@ describe('LoginForm', () => {
     await submit(user)
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
-    expect(loginBody()).toEqual({ ...CREDENTIALS, rememberMe: true })
+    expect(loginBody()).toEqual({ ...CREDENTIALS, rememberMe: false })
   })
 
   it('should ask the reader to verify their email when the account is unverified', async () => {
@@ -141,7 +141,7 @@ describe('LoginForm', () => {
     )
     const { user } = renderForm()
 
-    await user.type(screen.getByLabelText(/email or username/i), 'darrow')
+    await user.type(screen.getByLabelText(/email or username/i), 'user')
     await user.click(screen.getByRole('button', { name: /log in/i }))
 
     await waitFor(() => expect(screen.getByText(/password is required/i)).toBeInTheDocument())

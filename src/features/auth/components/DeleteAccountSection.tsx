@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
+import { WarningIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/useAuth'
@@ -57,26 +59,30 @@ export function DeleteAccountSection({ onDeleted }: DeleteAccountSectionProps) {
   }
 
   return (
-    <section className="mt-10 rounded-md border border-destructive/40 p-5">
-      <h2 className="font-semibold text-fg">Delete account</h2>
-      <p className="mt-1 text-sm text-fg-2">
-        Deleting your account immediately disables it and signs out this browser. It cannot be
-        restored. Another signed-in device may keep access for up to two hours. Your account,
-        shelves, notes, reviews, ratings, comments, and replies are deleted from the live service
-        after 30 days. Until then, reviews and ratings remain public without your identity, and your
-        username is removed from comments and replies. Encrypted backups may retain the data for
-        about another 30 days.
-      </p>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(true)}
-        className="mt-4 border-destructive text-destructive hover:bg-destructive/5 hover:text-destructive"
-      >
-        Delete my account
-      </Button>
+    <section className="mt-14 overflow-hidden rounded-[3px] border border-danger/40">
+      <h2 className="flex items-center gap-2 border-b border-danger/25 bg-danger/5 px-5 py-3 font-semibold text-danger">
+        <WarningIcon className="size-[1.125rem] shrink-0" />
+        Delete account
+      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-5">
+        <p className="min-w-0 max-w-[56ch] text-sm text-fg-2">
+          <strong className="font-semibold text-fg">This can&apos;t be undone.</strong> Your account
+          is disabled at once, and your shelves, ratings, reviews, and comments are removed after 30
+          days.{' '}
+          <Link to="/privacy" className="font-semibold text-brand underline underline-offset-2">
+            What happens to my data
+          </Link>
+        </p>
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={() => setOpen(true)}
+          className="px-4"
+        >
+          Delete my account
+        </Button>
+      </div>
 
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4">
@@ -90,10 +96,8 @@ export function DeleteAccountSection({ onDeleted }: DeleteAccountSectionProps) {
               Delete your account?
             </h3>
             <p className="mt-2 text-sm text-fg-2">
-              This immediately disables your account and signs out this browser. It cannot be
-              restored. Another signed-in device may keep access for up to two hours. Your
-              BetterReads account data is deleted from the live service after 30 days, and encrypted
-              backups may retain it for about another 30 days.
+              This can&apos;t be undone. Your account is disabled now, and your data is removed
+              after 30 days.
             </p>
 
             <label htmlFor={inputId} className="mt-4 block text-sm text-fg-2">

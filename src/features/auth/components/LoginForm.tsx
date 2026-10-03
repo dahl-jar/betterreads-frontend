@@ -32,7 +32,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [unverified, setUnverified] = useState(false)
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
-    defaultValues: { identifier: '', password: '', rememberMe: false },
+    defaultValues: { identifier: '', password: '', rememberMe: true },
   })
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -74,8 +74,16 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         label="Password"
         type="password"
         autoComplete="current-password"
+        aside={
+          <Link
+            to="/forgot-password"
+            className="text-sm font-semibold text-brand underline-offset-2 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        }
       />
-      <label className="flex items-center gap-2 text-sm text-fg">
+      <label className="flex cursor-pointer items-center gap-2.5 text-sm text-fg">
         <input
           type="checkbox"
           className="size-4 rounded border border-input accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -86,11 +94,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
         Log in
       </Button>
-      <p className="text-left text-sm">
-        <Link to="/forgot-password" className="font-semibold text-brand">
-          Forgot password?
-        </Link>
-      </p>
     </AuthForm>
   )
 }

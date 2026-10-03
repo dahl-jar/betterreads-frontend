@@ -2,6 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import { holdResponse } from '@/testing/holdResponse'
 import bookSeries from '@/testing/mocks/book-series.json'
 import { server } from '@/testing/msw-server'
 
@@ -19,21 +20,15 @@ function shownNames(series: BookSeries[]) {
 
 describe('useBookSeries', () => {
   it('should clear the previous series while the next book loads', async () => {
-    let markNextSeriesStarted: () => void = () => undefined
-    let releaseNextSeries: () => void = () => undefined
-    const nextSeriesStarted = new Promise<void>((resolve) => {
-      markNextSeriesStarted = resolve
-    })
-    const heldNextSeries = new Promise<void>((resolve) => {
-      releaseNextSeries = resolve
-    })
+    const nextSeriesStarted = holdResponse()
+    const heldNextSeries = holdResponse()
     server.use(
       http.get(`${BOOKS_BASE}/:key/series`, async ({ params }) => {
         if (params.key === RED_RISING_KEY) {
           return HttpResponse.json({ data: [bookSeries] })
         }
-        markNextSeriesStarted()
-        await heldNextSeries
+        nextSeriesStarted.release()
+        await heldNextSeries.held
         return HttpResponse.json({ data: [SUN_EATER] })
       }),
     )
@@ -43,11 +38,11 @@ describe('useBookSeries', () => {
     await waitFor(() => expect(shownNames(result.current)).toEqual([bookSeries.name]))
 
     rerender({ bookKey: EMPIRE_OF_SILENCE_KEY })
-    await nextSeriesStarted
+    await nextSeriesStarted.held
 
     expect(result.current).toEqual([])
 
-    releaseNextSeries()
+    heldNextSeries.release()
     await waitFor(() => expect(shownNames(result.current)).toEqual([SUN_EATER.name]))
   })
 })

@@ -10,13 +10,36 @@ import { renderWithProviders, screen, waitFor } from '@/testing/test-utils'
 
 import { RegisterForm } from '../components/RegisterForm'
 
-const BASE = 'http://localhost:8080/api/v1/auth'
+const REGISTER_URL = 'http://localhost:8080/api/v1/auth/register'
+const CONFLICT = 409
+const SERVER_ERROR = 500
 
-async function fillValidForm(user: ReturnType<typeof renderWithProviders>['user']) {
-  await user.type(screen.getByLabelText(/username/i), 'darrow')
-  await user.type(screen.getByLabelText(/email/i), 'darrow@example.com')
-  await user.type(screen.getByLabelText('Password'), 'secret-12')
-  await user.type(screen.getByLabelText(/confirm password/i), 'secret-12')
+const VALID_FORM = {
+  username: 'user',
+  email: 'user@example.com',
+  password: 'secret-12',
+  confirmPassword: 'secret-12',
+}
+
+function recordRegister(respond: () => Response = () => new HttpResponse(null, { status: 201 })) {
+  const sent: { body?: unknown } = {}
+  server.use(
+    http.post(REGISTER_URL, async ({ request }) => {
+      sent.body = await request.json()
+      return respond()
+    }),
+  )
+  return sent
+}
+
+async function submitForm(overrides: Partial<typeof VALID_FORM> = {}) {
+  const form = { ...VALID_FORM, ...overrides }
+  const { user } = renderWithProviders(<RegisterForm />)
+  await user.type(screen.getByLabelText(/username/i), form.username)
+  await user.type(screen.getByLabelText(/email/i), form.email)
+  await user.type(screen.getByLabelText('Password'), form.password)
+  await user.type(screen.getByLabelText(/confirm password/i), form.confirmPassword)
+  await user.click(screen.getByRole('button', { name: /create account/i }))
 }
 
 afterEach(() => {
@@ -27,33 +50,10 @@ afterEach(() => {
 beforeEach(stubSignedOut)
 
 describe('RegisterForm', () => {
-  it('should complete registration', async () => {
-    let registerBody: unknown
-    server.use(
-      http.post(`${BASE}/register`, async ({ request }) => {
-        registerBody = await request.json()
-        return new HttpResponse(null, { status: 201 })
-      }),
-    )
-    const { user } = renderWithProviders(<RegisterForm />)
+  it('should tell the reader to check their email', async () => {
+    const sent = recordRegister()
 
-    await fillValidForm(user)
-    await user.click(screen.getByRole('button', { name: /create account/i }))
-
-    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
-    expect(registerBody).toEqual({
-      username: 'darrow',
-      email: 'darrow@example.com',
-      password: 'secret-12',
-    })
-  })
-
-  it('should tell the reader to check their email after registering', async () => {
-    server.use(http.post(`${BASE}/register`, () => new HttpResponse(null, { status: 201 })))
-    const { user } = renderWithProviders(<RegisterForm />)
-
-    await fillValidForm(user)
-    await user.click(screen.getByRole('button', { name: /create account/i }))
+    await submitForm()
 
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(
@@ -61,118 +61,65 @@ describe('RegisterForm', () => {
       ),
     )
     expect(screen.getByRole('link', { name: /log in/i })).toHaveAttribute('href', '/login')
+    expect(sent.body).toEqual({
+      username: VALID_FORM.username,
+      email: VALID_FORM.email,
+      password: VALID_FORM.password,
+    })
   })
 
   it('should leave the reader signed out after registering', async () => {
-    server.use(
-      http.post(`${BASE}/register`, () =>
-        HttpResponse.json({ data: { ...auth } }, { status: 201 }),
-      ),
-    )
-    const { user } = renderWithProviders(<RegisterForm />)
+    recordRegister(() => HttpResponse.json({ data: { ...auth } }, { status: 201 }))
 
-    await fillValidForm(user)
-    await user.click(screen.getByRole('button', { name: /create account/i }))
+    await submitForm()
 
     await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
     expect(getAccessToken()).toBeUndefined()
   })
 
-  it('should reject a short password', async () => {
-    let registerCalled = false
-    server.use(
-      http.post(`${BASE}/register`, () => {
-        registerCalled = true
-        return new HttpResponse(null, { status: 201 })
-      }),
-    )
-    const { user } = renderWithProviders(<RegisterForm />)
+  it.each([
+    [
+      'a short password',
+      { password: 'short', confirmPassword: 'short' },
+      'Password must be at least 8 characters',
+    ],
+    [
+      'a username with disallowed characters',
+      { username: 'user!' },
+      'Use only letters, numbers, dot, underscore, or hyphen',
+    ],
+    [
+      'an email without a valid domain',
+      { email: 'user@localhost' },
+      'Enter a valid email with a domain, like name@example.com',
+    ],
+    ['mismatched passwords', { confirmPassword: 'differentpass' }, 'Passwords do not match'],
+  ])('should reject %s', async (_case, overrides, message) => {
+    const sent = recordRegister()
 
-    await user.type(screen.getByLabelText(/username/i), 'darrow')
-    await user.type(screen.getByLabelText(/email/i), 'darrow@example.com')
-    await user.type(screen.getByLabelText('Password'), 'short')
-    await user.click(screen.getByRole('button', { name: /create account/i }))
+    await submitForm(overrides)
 
-    await waitFor(() =>
-      expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument(),
-    )
-    expect(registerCalled).toBe(false)
+    expect(await screen.findByText(message)).toBeInTheDocument()
+    expect(sent.body).toBeUndefined()
   })
 
-  it('should reject a username with disallowed characters', async () => {
-    let registerCalled = false
-    server.use(
-      http.post(`${BASE}/register`, () => {
-        registerCalled = true
-        return new HttpResponse(null, { status: 201 })
-      }),
-    )
-    const { user } = renderWithProviders(<RegisterForm />)
+  it('should say the username or email is taken when the server refuses it', async () => {
+    recordRegister(() => new HttpResponse(null, { status: CONFLICT }))
 
-    await user.type(screen.getByLabelText(/username/i), 'darrow!')
-    await user.type(screen.getByLabelText(/email/i), 'darrow@example.com')
-    await user.type(screen.getByLabelText('Password'), 'secret-12')
-    await user.click(screen.getByRole('button', { name: /create account/i }))
+    await submitForm()
 
-    await waitFor(() =>
-      expect(
-        screen.getByText('Use only letters, numbers, dot, underscore, or hyphen'),
-      ).toBeInTheDocument(),
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'That username or email is already taken. Try another.',
     )
-    expect(registerCalled).toBe(false)
   })
 
-  it('should reject an email without a valid domain', async () => {
-    let registerCalled = false
-    server.use(
-      http.post(`${BASE}/register`, () => {
-        registerCalled = true
-        return new HttpResponse(null, { status: 201 })
-      }),
+  it('should show the general error for any other failure', async () => {
+    recordRegister(() => new HttpResponse(null, { status: SERVER_ERROR }))
+
+    await submitForm()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not create your account. Try again.',
     )
-    const { user } = renderWithProviders(<RegisterForm />)
-
-    await user.type(screen.getByLabelText(/username/i), 'darrow')
-    await user.type(screen.getByLabelText(/email/i), 'darrow@localhost')
-    await user.type(screen.getByLabelText('Password'), 'secret-12')
-    await user.click(screen.getByRole('button', { name: /create account/i }))
-
-    await waitFor(() =>
-      expect(
-        screen.getByText('Enter a valid email with a domain, like name@example.com'),
-      ).toBeInTheDocument(),
-    )
-    expect(registerCalled).toBe(false)
-  })
-
-  it('should reject mismatched passwords', async () => {
-    let registerCalled = false
-    server.use(
-      http.post(`${BASE}/register`, () => {
-        registerCalled = true
-        return new HttpResponse(null, { status: 201 })
-      }),
-    )
-    const { user } = renderWithProviders(<RegisterForm />)
-
-    await user.type(screen.getByLabelText(/username/i), 'darrow')
-    await user.type(screen.getByLabelText(/email/i), 'darrow@example.com')
-    await user.type(screen.getByLabelText('Password'), 'secret-12')
-    await user.type(screen.getByLabelText(/confirm password/i), 'differentpass')
-    await user.click(screen.getByRole('button', { name: /create account/i }))
-
-    await waitFor(() => expect(screen.getByText('Passwords do not match')).toBeInTheDocument())
-    expect(registerCalled).toBe(false)
-  })
-
-  it('should show an error when the username is already taken', async () => {
-    server.use(http.post(`${BASE}/register`, () => new HttpResponse(null, { status: 409 })))
-    const { user } = renderWithProviders(<RegisterForm />)
-
-    await fillValidForm(user)
-    await user.click(screen.getByRole('button', { name: /create account/i }))
-
-    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
   })
 })

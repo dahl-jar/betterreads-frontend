@@ -1,6 +1,8 @@
 import { lazy, Suspense, type ComponentType, type ReactElement } from 'react'
 import { createBrowserRouter, Outlet, type RouteObject } from 'react-router-dom'
 
+import { SHELF_PATH } from '@/lib/shelfPath'
+
 import { AppLayout } from './components/AppLayout'
 import { RouteErrorBoundary } from './components/RouteErrorBoundary'
 import { RouteFallback } from './components/RouteFallback'
@@ -49,7 +51,7 @@ export const routes: RouteObject[] = [
           },
           {
             path: '/profile',
-            element: lazyElement(() => import('./routes/ProfileRoute'), 'ProfileRoute', 'Account'),
+            element: lazyElement(() => import('./routes/ProfileRoute'), 'ProfileRoute', 'Profile'),
           },
           {
             path: '/settings',
@@ -60,7 +62,7 @@ export const routes: RouteObject[] = [
             ),
           },
           {
-            path: '/shelf',
+            path: SHELF_PATH,
             element: lazyElement(() => import('./routes/ShelfRoute'), 'ShelfRoute', 'My books'),
           },
           {

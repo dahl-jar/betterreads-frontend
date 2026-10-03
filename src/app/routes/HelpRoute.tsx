@@ -1,38 +1,74 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
-import { StaticPage } from '@/app/components/StaticPage'
+import { ContactCard } from '@/app/components/ContactCard'
+import { StaticLayout } from '@/app/components/StaticLayout'
+import { ChevronDownIcon } from '@/components/icons'
+
+type Question = {
+  question: string
+  answer: ReactNode
+}
+
+const QUESTIONS: Question[] = [
+  {
+    question: "Why can't I find a book?",
+    answer:
+      "We list a book once its details are complete. When you search for one we don't have, we look for it, and it can show up on a later search. Some books can't be listed because their details are missing everywhere we look.",
+  },
+  {
+    question: 'How do I add a book to my shelves?',
+    answer:
+      'Open the book and choose Want to read. The arrow next to it has the other shelves: Currently reading, Read, and Did not finish.',
+  },
+  {
+    question: 'How do I write a review?',
+    answer:
+      'Open the book and pick a star rating under Reviews. The review box opens, and writing in it is optional.',
+  },
+  {
+    question: 'Who can see my books and reviews?',
+    answer:
+      'Your shelves and dates are private. Your ratings, reviews, and comments are public and show your username.',
+  },
+  {
+    question: 'I forgot my password',
+    answer: 'Choose Forgot password? on the login page. We email you a link to set a new one.',
+  },
+  {
+    question: 'How do I delete my account?',
+    answer: (
+      <>
+        Go to Settings and choose Delete my account. It can&apos;t be undone, and your data is
+        removed after 30 days. The{' '}
+        <Link to="/privacy" className="font-semibold text-brand underline underline-offset-2">
+          privacy policy
+        </Link>{' '}
+        has the details.
+      </>
+    ),
+  },
+]
 
 export function HelpRoute() {
   return (
-    <StaticPage title="Help">
-      <h2>Why can&apos;t I find a book?</h2>
-      <p>
-        We show a book only when its core details are complete, so you never open a half-empty page.
-        When you search for one we don&apos;t have, we go and check our sources for it. If a
-        complete copy is out there, it shows up on a later search.
-      </p>
-      <p>
-        Some books we simply can&apos;t list: they aren&apos;t in any of our sources, or they only
-        turn up with key details missing. We&apos;d rather leave a book out than show you a broken
-        entry.
-      </p>
-      <h2>I forgot my password</h2>
-      <p>Use the reset link on the login page. We email a link that lets you set a new password.</p>
-      <h2>How do I delete my account?</h2>
-      <p>
-        Delete your account from Settings. It is disabled immediately and cannot be restored. We
-        sign out this browser, though another signed-in device may keep access for up to two hours.
-        We delete your account, shelves, reviews, ratings, comments, and replies from the live
-        service after 30 days. Reviews and ratings remain public during that time without your
-        identity, and your username is removed from comments and replies. See the{' '}
-        <Link to="/privacy">privacy policy</Link> for how long backups and service records are kept.
-      </p>
-      <h2 id="contact">Contact</h2>
-      <p>
-        For anything not covered here, email us at{' '}
-        <strong className="contact-email">contact@betterreadsapp.com</strong> and we&apos;ll get
-        back to you.
-      </p>
-    </StaticPage>
+    <StaticLayout title="Help">
+      <div className="mt-8 border-t border-rule text-[1.0625rem] leading-7">
+        {QUESTIONS.map((item, index) => (
+          <details
+            key={item.question}
+            open={index === 0}
+            className="group border-b border-rule open:bg-sunken"
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-semibold text-fg hover:text-brand [&::-webkit-details-marker]:hidden">
+              {item.question}
+              <ChevronDownIcon className="size-4 shrink-0 text-brand transition-transform group-open:rotate-180" />
+            </summary>
+            <p className="max-w-[62ch] px-4 pb-5 text-fg-2">{item.answer}</p>
+          </details>
+        ))}
+      </div>
+      <ContactCard />
+    </StaticLayout>
   )
 }

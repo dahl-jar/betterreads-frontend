@@ -27,6 +27,18 @@ async function openDialog(user: ReturnType<typeof renderWithProviders>['user']) 
   return screen.getByRole('dialog')
 }
 
+async function renderOpenDialog() {
+  const onDeleted = vi.fn()
+  const { user } = renderWithProviders(<DeleteAccountSection onDeleted={onDeleted} />)
+  await openDialog(user)
+  return { user, onDeleted }
+}
+
+async function confirmDeletion(user: ReturnType<typeof renderWithProviders>['user']) {
+  await user.type(screen.getByRole('textbox'), 'delete')
+  await user.click(screen.getByRole('button', { name: /delete account/i }))
+}
+
 afterEach(() => {
   clearAccessToken()
   setRefreshHandler(undefined)
@@ -57,12 +69,9 @@ describe('DeleteAccountSection', () => {
 
   it('should delete after confirmation', async () => {
     stubDelete()
-    const onDeleted = vi.fn()
-    const { user } = renderWithProviders(<DeleteAccountSection onDeleted={onDeleted} />)
-    await openDialog(user)
+    const { user, onDeleted } = await renderOpenDialog()
 
-    await user.type(screen.getByRole('textbox'), 'delete')
-    await user.click(screen.getByRole('button', { name: /delete account/i }))
+    await confirmDeletion(user)
 
     await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1))
   })
@@ -80,12 +89,9 @@ describe('DeleteAccountSection', () => {
 
   it('should keep the account when deletion fails', async () => {
     stubDelete(500)
-    const onDeleted = vi.fn()
-    const { user } = renderWithProviders(<DeleteAccountSection onDeleted={onDeleted} />)
-    await openDialog(user)
+    const { user, onDeleted } = await renderOpenDialog()
 
-    await user.type(screen.getByRole('textbox'), 'delete')
-    await user.click(screen.getByRole('button', { name: /delete account/i }))
+    await confirmDeletion(user)
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(onDeleted).not.toHaveBeenCalled()

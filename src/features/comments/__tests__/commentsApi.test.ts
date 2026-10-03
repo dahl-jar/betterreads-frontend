@@ -11,6 +11,17 @@ import comment from './mocks/comment.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 
+function recordPost(created: Record<string, unknown>) {
+  const sent: { body?: unknown } = {}
+  server.use(
+    http.post(`${BASE}/reviews/7/comments`, async ({ request }) => {
+      sent.body = await request.json()
+      return HttpResponse.json({ data: created }, { status: 201 })
+    }),
+  )
+  return sent
+}
+
 describe('getReviewComments', () => {
   it('should return the page of comments with its total', async () => {
     server.use(
@@ -48,32 +59,20 @@ describe('getReviewComments', () => {
 
 describe('postReviewComment', () => {
   it('should post a top-level comment', async () => {
-    let sent: unknown
-    server.use(
-      http.post(`${BASE}/reviews/7/comments`, async ({ request }) => {
-        sent = await request.json()
-        return HttpResponse.json({ data: { ...comment, id: 5, body: 'Agreed.' } }, { status: 201 })
-      }),
-    )
+    const sent = recordPost({ ...comment, id: 5, body: 'Agreed.' })
 
     const created = await postReviewComment(7, { body: 'Agreed.' })
 
-    expect(sent).toEqual({ body: 'Agreed.' })
+    expect(sent.body).toEqual({ body: 'Agreed.' })
     expect(created.id).toBe(5)
   })
 
   it('should include the parent id when replying', async () => {
-    let sent: unknown
-    server.use(
-      http.post(`${BASE}/reviews/7/comments`, async ({ request }) => {
-        sent = await request.json()
-        return HttpResponse.json({ data: { ...comment, id: 6 } }, { status: 201 })
-      }),
-    )
+    const sent = recordPost({ ...comment, id: 6 })
 
     await postReviewComment(7, { body: 'Replying.', parentCommentId: 5 })
 
-    expect(sent).toEqual({ body: 'Replying.', parentCommentId: 5 })
+    expect(sent.body).toEqual({ body: 'Replying.', parentCommentId: 5 })
   })
 })
 

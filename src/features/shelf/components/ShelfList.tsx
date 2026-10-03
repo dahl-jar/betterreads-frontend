@@ -1,181 +1,145 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 
+import { GridIcon, ListIcon } from '@/components/icons'
 import { Pagination } from '@/components/Pagination'
-import { AUTHOR_UNKNOWN, joinAuthors } from '@/lib/formatAuthors'
+import { bookNoun } from '@/lib/bookNoun'
 
-import { type ReadingStatus, type ShelfEntry } from '../api/shelfSchemas'
-import { useShelf } from '../hooks/useShelf'
-import { formatShelfDate } from '../utils/formatShelfDate'
+import { useShelfEntries } from '../hooks/useShelfEntries'
+import { matchesFilter, type ShelfFilter } from '../utils/shelfFilters'
+import { SHELF_LIST_COLUMNS } from '../utils/shelfListColumns'
+import { SHELF_LOAD_FAILED } from '../utils/shelfLoadFailed'
+import { SHELF_SORTS, type ShelfSort } from '../utils/shelfSorts'
 
-const MAX_STARS = 5
+import { ShelfCard } from './ShelfCard'
+import { ShelfRail } from './ShelfRail'
+import { ShelfRow } from './ShelfRow'
+import { SortMenu } from './SortMenu'
+
+type ShelfListProps = {
+  initialFilter?: ShelfFilter
+  onRate: (key: string, rating: number) => Promise<void>
+}
+
+type ShelfView = 'list' | 'cover'
+
 const SHELF_PAGE_SIZE = 15
 
-const FILTERS: { value: ReadingStatus | undefined; label: string }[] = [
-  { value: undefined, label: 'All' },
-  { value: 'WANT_TO_READ', label: 'Want to read' },
-  { value: 'CURRENTLY_READING', label: 'Reading' },
-  { value: 'FINISHED', label: 'Finished' },
-  { value: 'DROPPED', label: 'Dropped' },
-]
+const VIEW_OPTIONS = [
+  { view: 'list', label: 'List view', Icon: ListIcon },
+  { view: 'cover', label: 'Cover view', Icon: GridIcon },
+] as const
 
-export function ShelfList() {
-  const [filter, setFilter] = useState<ReadingStatus | undefined>(undefined)
+export function ShelfList({ initialFilter = 'ALL', onRate }: ShelfListProps) {
+  const { status, entries, changeFor, rateFor } = useShelfEntries(onRate)
+  const [filter, setFilter] = useState<ShelfFilter>(initialFilter)
+  const [sort, setSort] = useState<ShelfSort>('added')
+  const [view, setView] = useState<ShelfView>('list')
   const [page, setPage] = useState(1)
-  const { status, entries } = useShelf(filter)
-  const pageStart = (page - 1) * SHELF_PAGE_SIZE
-  const visibleEntries = entries.slice(pageStart, pageStart + SHELF_PAGE_SIZE)
-  const hasNextPage = page * SHELF_PAGE_SIZE < entries.length
 
-  const selectFilter = (nextFilter: ReadingStatus | undefined) => {
-    setFilter(nextFilter)
+  const shown = entries
+    .filter((entry) => matchesFilter(entry, filter))
+    .sort(SHELF_SORTS[sort].compare)
+  const lastPage = Math.max(1, Math.ceil(shown.length / SHELF_PAGE_SIZE))
+  const currentPage = Math.min(page, lastPage)
+  const pageStart = (currentPage - 1) * SHELF_PAGE_SIZE
+  const pageEntries = shown.slice(pageStart, pageStart + SHELF_PAGE_SIZE)
+
+  const selectFilter = (next: ShelfFilter) => {
+    setFilter(next)
     setPage(1)
   }
 
+  const title = <h1 className="font-title text-3xl text-fg">My books</h1>
+
+  if (status === 'error') {
+    return (
+      <>
+        {title}
+        <p role="alert" className="mt-6 text-sm text-destructive">
+          {SHELF_LOAD_FAILED}
+        </p>
+      </>
+    )
+  }
+
+  if (status === 'loading') {
+    return title
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((option) => {
-          const active = filter === option.value
-          return (
-            <button
-              key={option.label}
-              type="button"
-              onClick={() => selectFilter(option.value)}
-              aria-pressed={active}
-              className={
-                active
-                  ? 'rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-on-accent'
-                  : 'rounded-full border border-rule px-4 py-1.5 text-sm font-semibold text-fg-2 hover:bg-muted'
-              }
-            >
-              {option.label}
-            </button>
-          )
-        })}
+    <>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          {title}
+          <p className="mt-1 text-sm text-fg-2">
+            {shown.length} {bookNoun(shown.length)}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <SortMenu sort={sort} onSort={setSort} />
+          <div className="flex divide-x divide-rule overflow-hidden rounded-md border border-rule">
+            {VIEW_OPTIONS.map((option) => (
+              <button
+                key={option.view}
+                type="button"
+                onClick={() => setView(option.view)}
+                aria-pressed={view === option.view}
+                aria-label={option.label}
+                className={`flex size-9 items-center justify-center ${view === option.view ? 'bg-sunken text-fg' : 'text-fg-3 hover:text-fg'}`}
+              >
+                <option.Icon className="size-4" />
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {status === 'error' ? (
-        <p role="alert" className="text-sm text-destructive">
-          Could not load your shelf. Try again.
-        </p>
-      ) : null}
-
-      {status === 'success' && entries.length === 0 ? (
-        <p className="text-fg-2">No books on this shelf yet.</p>
-      ) : null}
-
-      <ul className="divide-y divide-rule">
-        {visibleEntries.map((entry) => (
-          <li key={entry.key}>
-            <Link to={`/books/${entry.key}`} className="flex gap-4 py-4 no-underline group">
-              {entry.coverUrl ? (
-                <img
-                  src={entry.coverUrl}
-                  alt=""
-                  width={64}
-                  height={96}
-                  className="h-24 w-16 rounded border border-rule object-cover"
-                />
-              ) : (
-                <div className="flex h-24 w-16 items-center justify-center rounded border border-rule bg-muted text-xs text-fg-3">
-                  No cover
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="font-title text-lg text-fg group-hover:text-brand">
-                  {entry.title}
-                  {entry.favorite ? (
-                    <>
-                      <span className="ml-2 text-star" aria-hidden="true">
-                        ★
-                      </span>
-                      <span className="sr-only"> Favorite</span>
-                    </>
-                  ) : null}
-                </p>
-                <p className="mt-0.5 text-sm text-fg-2">
-                  {entry.authors.length > 0 ? `by ${joinAuthors(entry.authors)}` : AUTHOR_UNKNOWN}
-                </p>
-                <ShelfEntryMeta entry={entry} />
+      <div className="mt-10 grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
+        <ShelfRail entries={entries} filter={filter} onFilter={selectFilter} />
+        <div className="min-w-0">
+          {shown.length === 0 ? (
+            <p className="py-10 text-fg-2">No books on this shelf yet.</p>
+          ) : view === 'list' ? (
+            <>
+              <div
+                className={`hidden gap-x-5 border-b border-rule pb-3 md:grid ${SHELF_LIST_COLUMNS}`}
+              >
+                <span className="label-caps col-span-2">Book</span>
+                <span className="label-caps">Your rating</span>
+                <span className="label-caps">Date</span>
+                <span className="label-caps">Shelf</span>
               </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {status === 'success' ? (
-        <Pagination
-          page={page}
-          hasNext={hasNextPage}
-          ariaLabel="Shelf pages"
-          onPageChange={setPage}
-        />
-      ) : null}
-    </div>
-  )
-}
-
-function ShelfEntryMeta({ entry }: { entry: ShelfEntry }) {
-  const addedAt = formatShelfDate(entry.addedAt)
-  const finishedAt = entry.status === 'FINISHED' ? formatShelfDate(entry.finishedAt) : undefined
-  const averageRating = entry.averageRating ?? undefined
-  const myRating = entry.myRating ?? undefined
-
-  return (
-    <div className="mt-1.5 flex flex-col gap-1 text-sm text-fg-3">
-      <ShelfDateLine addedAt={addedAt} finishedAt={finishedAt} />
-      <ShelfRatingLine averageRating={averageRating} myRating={myRating} />
-    </div>
-  )
-}
-
-function ShelfDateLine({
-  addedAt,
-  finishedAt,
-}: {
-  addedAt: string | undefined
-  finishedAt: string | undefined
-}) {
-  if (!addedAt && !finishedAt) {
-    return null
-  }
-
-  return (
-    <p className="flex flex-wrap gap-x-3">
-      {addedAt ? <span>Added {addedAt}</span> : null}
-      {finishedAt ? <span>Read {finishedAt}</span> : null}
-    </p>
-  )
-}
-
-function ShelfRatingLine({
-  averageRating,
-  myRating,
-}: {
-  averageRating: number | undefined
-  myRating: number | undefined
-}) {
-  if (averageRating === undefined && myRating === undefined) {
-    return null
-  }
-
-  return (
-    <p className="flex flex-wrap items-center gap-x-3">
-      {averageRating !== undefined ? (
-        <span>
-          <span className="text-star">★</span> {averageRating.toFixed(2)} avg
-        </span>
-      ) : null}
-      {myRating !== undefined ? <StarRating value={myRating} /> : null}
-    </p>
-  )
-}
-
-function StarRating({ value }: { value: number }) {
-  return (
-    <span aria-label={`Your rating: ${value} of ${MAX_STARS}`} className="text-star">
-      {'★'.repeat(value)}
-      <span className="text-fg-3">{'☆'.repeat(Math.max(0, MAX_STARS - value))}</span>
-    </span>
+              <ul className="divide-y divide-rule">
+                {pageEntries.map((entry) => (
+                  <ShelfRow
+                    key={entry.key}
+                    entry={entry}
+                    onRate={rateFor(entry)}
+                    onEntryChange={changeFor(entry.key)}
+                  />
+                ))}
+              </ul>
+            </>
+          ) : (
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4">
+              {pageEntries.map((entry) => (
+                <ShelfCard
+                  key={entry.key}
+                  entry={entry}
+                  onRate={rateFor(entry)}
+                  onEntryChange={changeFor(entry.key)}
+                />
+              ))}
+            </ul>
+          )}
+          <Pagination
+            page={currentPage}
+            hasNext={currentPage < lastPage}
+            ariaLabel="Shelf pages"
+            onPageChange={setPage}
+          />
+        </div>
+      </div>
+    </>
   )
 }

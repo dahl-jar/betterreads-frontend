@@ -2,6 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import { holdResponse } from '@/testing/holdResponse'
 import { server } from '@/testing/msw-server'
 
 import { useCommunityRating } from '../hooks/useCommunityRating'
@@ -12,23 +13,23 @@ function rating(average: number) {
   return { average, count: 2, distribution: [{ star: 5, count: 2 }] }
 }
 
+function renderWithRefreshToken() {
+  return renderHook(({ refreshToken }) => useCommunityRating('OL1W', refreshToken), {
+    initialProps: { refreshToken: 0 },
+  })
+}
+
 describe('useCommunityRating', () => {
   it('should clear a stale rating while loading', async () => {
-    let markNextRatingStarted: () => void = () => undefined
-    let releaseNextRating: () => void = () => undefined
-    const nextRatingStarted = new Promise<void>((resolve) => {
-      markNextRatingStarted = resolve
-    })
-    const heldNextRating = new Promise<void>((resolve) => {
-      releaseNextRating = resolve
-    })
+    const nextRatingStarted = holdResponse()
+    const heldNextRating = holdResponse()
     server.use(
       http.get(`${RATING_BASE}/:key/community-rating`, async ({ params }) => {
         if (params.key === 'OL1W') {
           return HttpResponse.json({ data: rating(4.5) })
         }
-        markNextRatingStarted()
-        await heldNextRating
+        nextRatingStarted.release()
+        await heldNextRating.held
         return HttpResponse.json({ data: rating(3.5) })
       }),
     )
@@ -39,11 +40,11 @@ describe('useCommunityRating', () => {
     await waitFor(() => expect(result.current?.average).toBe(4.5))
 
     rerender({ bookKey: 'OL2W', refreshToken: 0 })
-    await nextRatingStarted
+    await nextRatingStarted.held
 
     expect(result.current).toBeUndefined()
 
-    releaseNextRating()
+    heldNextRating.release()
     await waitFor(() => expect(result.current?.average).toBe(3.5))
   })
 
@@ -60,10 +61,7 @@ describe('useCommunityRating', () => {
         return new HttpResponse(null, { status: 400 })
       }),
     )
-    const { rerender, result } = renderHook(
-      ({ refreshToken }) => useCommunityRating('OL1W', refreshToken),
-      { initialProps: { refreshToken: 0 } },
-    )
+    const { rerender, result } = renderWithRefreshToken()
     await waitFor(() => expect(result.current?.average).toBe(4.5))
 
     rerender({ refreshToken: 1 })
@@ -80,10 +78,7 @@ describe('useCommunityRating', () => {
         return HttpResponse.json({ data: rating(requestCount) })
       }),
     )
-    const { rerender, result } = renderHook(
-      ({ refreshToken }) => useCommunityRating('OL1W', refreshToken),
-      { initialProps: { refreshToken: 0 } },
-    )
+    const { rerender, result } = renderWithRefreshToken()
     await waitFor(() => expect(result.current?.average).toBe(1))
 
     rerender({ refreshToken: 1 })

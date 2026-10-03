@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import { useFormContext, type FieldPath, type FieldValues } from 'react-hook-form'
 
 import {
@@ -15,12 +15,14 @@ type TextFieldProps<TFieldValues extends FieldValues> = {
   name: FieldPath<TFieldValues>
   label: string
   description?: string
+  aside?: ReactNode
 } & Omit<ComponentProps<typeof Input>, 'name'>
 
 export function TextField<TFieldValues extends FieldValues>({
   name,
   label,
   description,
+  aside,
   ...inputProps
 }: TextFieldProps<TFieldValues>) {
   const { control } = useFormContext<TFieldValues>()
@@ -30,7 +32,10 @@ export function TextField<TFieldValues extends FieldValues>({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{label}</FormLabel>
+          <div className="flex items-baseline justify-between gap-3">
+            <FormLabel>{label}</FormLabel>
+            {aside}
+          </div>
           <FormControl>
             <Input {...inputProps} {...field} />
           </FormControl>

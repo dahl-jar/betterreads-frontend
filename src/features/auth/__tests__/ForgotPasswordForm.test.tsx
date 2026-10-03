@@ -7,53 +7,61 @@ import { renderWithProviders, screen, waitFor } from '@/testing/test-utils'
 
 import { ForgotPasswordForm } from '../components/ForgotPasswordForm'
 
-const BASE = 'http://localhost:8080/api/v1/auth'
+const FORGOT_URL = 'http://localhost:8080/api/v1/auth/forgot-password'
+const KNOWN_EMAIL = 'known@example.com'
+
+function recordRequests(status = 204) {
+  const emails: string[] = []
+  server.use(
+    http.post(FORGOT_URL, async ({ request }) => {
+      const body = (await request.json()) as { email: string }
+      emails.push(body.email)
+      return new HttpResponse(null, { status })
+    }),
+  )
+  return emails
+}
+
+async function requestReset(email: string) {
+  const { user } = renderWithProviders(<ForgotPasswordForm />)
+  await user.type(screen.getByLabelText(/email/i), email)
+  await user.click(screen.getByRole('button', { name: /send reset link/i }))
+}
 
 beforeEach(stubSignedOut)
 
 describe('ForgotPasswordForm', () => {
   it('should confirm the request', async () => {
-    const submittedEmails: string[] = []
-    server.use(
-      http.post(`${BASE}/forgot-password`, async ({ request }) => {
-        const body = (await request.json()) as { email: string }
-        submittedEmails.push(body.email)
-        return new HttpResponse(null, { status: 204 })
-      }),
+    const emails = recordRequests()
+
+    await requestReset(KNOWN_EMAIL)
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'If that email has an account, a reset link is on its way. Check your inbox.',
+      ),
     )
-    const { user } = renderWithProviders(<ForgotPasswordForm />)
-
-    await user.type(screen.getByLabelText(/email/i), 'known@example.com')
-    await user.click(screen.getByRole('button', { name: /send reset link/i }))
-
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/if that email/i))
-    expect(submittedEmails).toEqual(['known@example.com'])
+    expect(emails).toEqual([KNOWN_EMAIL])
   })
 
   it('should not submit an address without a valid domain', async () => {
-    let called = false
-    server.use(
-      http.post(`${BASE}/forgot-password`, () => {
-        called = true
-        return new HttpResponse(null, { status: 204 })
-      }),
-    )
-    const { user } = renderWithProviders(<ForgotPasswordForm />)
+    const emails = recordRequests()
 
-    await user.type(screen.getByLabelText(/email/i), 'not-an-email')
-    await user.click(screen.getByRole('button', { name: /send reset link/i }))
+    await requestReset('not-an-email')
 
     await waitFor(() => expect(screen.getByText(/valid email/i)).toBeInTheDocument())
-    expect(called).toBe(false)
+    expect(emails).toEqual([])
   })
 
   it('should confirm a failed request', async () => {
-    server.use(http.post(`${BASE}/forgot-password`, () => new HttpResponse(null, { status: 500 })))
-    const { user } = renderWithProviders(<ForgotPasswordForm />)
+    recordRequests(500)
 
-    await user.type(screen.getByLabelText(/email/i), 'known@example.com')
-    await user.click(screen.getByRole('button', { name: /send reset link/i }))
+    await requestReset(KNOWN_EMAIL)
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/if that email/i))
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'If that email has an account, a reset link is on its way. Check your inbox.',
+      ),
+    )
   })
 })

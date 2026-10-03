@@ -10,7 +10,7 @@ describe('httpOnlyUrl', () => {
   it.each([
     'javascript:alert(1)',
     'data:text/html,<script>alert(1)</script>',
-    'mailto:darrow@example.test',
+    'mailto:user@example.test',
     '/books/dune',
   ])('should return "" for %s', (url) => {
     expect(httpOnlyUrl(url)).toBe('')

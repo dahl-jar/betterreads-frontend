@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { BookCover } from '@/components/BookCover'
 import { SlideRow } from '@/components/SlideRow'
+import { bookPath } from '@/lib/bookPath'
 
 import { type BookDetail } from '../api/getBook'
 import { type BookSeries, type SeriesBook } from '../api/getBookSeries'
@@ -49,7 +50,7 @@ function SeriesBookCard({ book, open }: SeriesBookCardProps) {
       {open ? (
         card
       ) : (
-        <Link to={`/books/${book.key}`} className="group block no-underline">
+        <Link to={bookPath(book.key)} className="group block no-underline">
           {card}
         </Link>
       )}

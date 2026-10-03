@@ -13,7 +13,7 @@ import { BookReviews } from '../components/BookReviews'
 const BASE = 'http://localhost:8080/api/v1'
 const OWN_REVIEW_URL = `${BASE}/books/OL1W/reviews/me`
 const LONG_BODY = 'The spice must flow. '.repeat(30).trim()
-const OWN_REVIEW = { ...review, author: 'darrow' }
+const OWN_REVIEW = { ...review, author: 'user' }
 const OTHER_REVIEW = { ...review, id: 2, title: 'Another voice' }
 const RATING_ONLY = { ...OWN_REVIEW, id: 9, rating: 4, title: null, body: null }
 const SERVER_ERROR = 500
@@ -49,6 +49,15 @@ function stubSave(saved: Record<string, unknown>) {
     }),
   )
   return sent
+}
+
+async function editOwnReview(saved: Record<string, unknown>) {
+  stubReader([OWN_REVIEW])
+  const sent = stubSave(saved)
+  const { user } = renderWithProviders(<BookReviews bookKey="OL1W" />)
+  await user.click(await screen.findByRole('button', { name: 'Edit review' }))
+  await user.type(screen.getByLabelText('Title'), ', twice')
+  return { user, sent }
 }
 
 function stubFailure(method: 'put' | 'delete') {
@@ -88,7 +97,7 @@ describe('BookReviews', () => {
 
     renderWithProviders(<BookReviews bookKey="OL1W" />)
 
-    expect(await screen.findByText('mustang')).toBeInTheDocument()
+    expect(await screen.findByText('otheruser')).toBeInTheDocument()
   })
 
   it('should render a review body as Markdown', async () => {
@@ -222,11 +231,7 @@ describe('BookReviews', () => {
   })
 
   it('should save the edited text with the saved rating', async () => {
-    stubReader([OWN_REVIEW])
-    const sent = stubSave({ ...OWN_REVIEW, title: 'A desert epic, twice' })
-    const { user } = renderWithProviders(<BookReviews bookKey="OL1W" />)
-    await user.click(await screen.findByRole('button', { name: 'Edit review' }))
-    await user.type(screen.getByLabelText('Title'), ', twice')
+    const { user, sent } = await editOwnReview({ ...OWN_REVIEW, title: 'A desert epic, twice' })
 
     await user.click(screen.getByRole('button', { name: 'Save review' }))
 
@@ -238,11 +243,7 @@ describe('BookReviews', () => {
   })
 
   it('should preserve review text when the rating changes', async () => {
-    stubReader([OWN_REVIEW])
-    const sent = stubSave({ ...OWN_REVIEW, rating: 2 })
-    const { user } = renderWithProviders(<BookReviews bookKey="OL1W" />)
-    await user.click(await screen.findByRole('button', { name: 'Edit review' }))
-    await user.type(screen.getByLabelText('Title'), ', twice')
+    const { user, sent } = await editOwnReview({ ...OWN_REVIEW, rating: 2 })
 
     await user.click(screen.getByRole('button', { name: 'Rate 2 of 5' }))
 
@@ -252,11 +253,7 @@ describe('BookReviews', () => {
   })
 
   it('should keep the editor draft when the rating changes', async () => {
-    stubReader([OWN_REVIEW])
-    stubSave({ ...OWN_REVIEW, rating: 2 })
-    const { user } = renderWithProviders(<BookReviews bookKey="OL1W" />)
-    await user.click(await screen.findByRole('button', { name: 'Edit review' }))
-    await user.type(screen.getByLabelText('Title'), ', twice')
+    const { user } = await editOwnReview({ ...OWN_REVIEW, rating: 2 })
 
     await user.click(screen.getByRole('button', { name: 'Rate 2 of 5' }))
 

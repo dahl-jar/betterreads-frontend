@@ -7,19 +7,19 @@ import { Avatar } from './Avatar'
 describe('Avatar', () => {
   it('should render the image as decorative when a url is given', () => {
     const { container } = renderWithProviders(
-      <Avatar name="Darrow" url="https://img.example/darrow.png" />,
+      <Avatar name="User" url="https://img.example/user.png" />,
     )
 
     const image = container.querySelector('img')
-    expect(image).toHaveAttribute('src', 'https://img.example/darrow.png')
+    expect(image).toHaveAttribute('src', 'https://img.example/user.png')
     expect(image).toHaveAttribute('alt', '')
   })
 
   it('should fall back to the first initial', () => {
-    renderWithProviders(<Avatar name="Mustang" />)
+    renderWithProviders(<Avatar name="Other user" />)
 
     expect(screen.queryByRole('img')).toBeNull()
-    expect(screen.getByText('M')).toBeInTheDocument()
+    expect(screen.getByText('O')).toBeInTheDocument()
   })
 
   it('should show a placeholder when the name is empty', () => {

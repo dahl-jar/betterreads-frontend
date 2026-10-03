@@ -1,13 +1,12 @@
 import { type RefObject, useEffect } from 'react'
 
-export type DismissReason = 'outside' | 'escape'
-
 const CLOSE_KEY = 'Escape'
 
 export function useDismiss(
   ref: RefObject<HTMLElement | null>,
   open: boolean,
-  onDismiss: (reason: DismissReason) => void,
+  onDismiss: () => void,
+  returnFocusRef?: RefObject<HTMLElement | null>,
 ) {
   useEffect(() => {
     if (!open) {
@@ -15,12 +14,13 @@ export function useDismiss(
     }
     const onPointerDown = (event: PointerEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) {
-        onDismiss('outside')
+        onDismiss()
       }
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === CLOSE_KEY) {
-        onDismiss('escape')
+        onDismiss()
+        returnFocusRef?.current?.focus()
       }
     }
     document.addEventListener('pointerdown', onPointerDown)
@@ -29,5 +29,5 @@ export function useDismiss(
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [ref, open, onDismiss])
+  }, [ref, open, onDismiss, returnFocusRef])
 }

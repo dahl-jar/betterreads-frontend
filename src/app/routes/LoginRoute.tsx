@@ -8,6 +8,7 @@ export function LoginRoute() {
   return (
     <AuthLayout
       title="Welcome back"
+      backdrop
       footer={{ prompt: 'New here?', linkLabel: 'Create an account', to: '/register' }}
     >
       <LoginForm onSuccess={() => void navigate('/')} />

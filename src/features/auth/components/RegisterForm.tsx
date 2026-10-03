@@ -5,14 +5,19 @@ import { Link } from 'react-router-dom'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { ApiError } from '@/lib/api/client'
 
 import { register } from '../api/register'
 
 import { AuthForm } from './AuthForm'
 import { emailSchema } from './emailSchema'
+import { confirmationMatches, passwordSchema } from './passwordSchema'
 import { TextField } from './TextField'
 
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/
+const CONFLICT = 409
+const TAKEN_ERROR = 'That username or email is already taken. Try another.'
+const GENERAL_ERROR = 'Could not create your account. Try again.'
 
 const registerFormSchema = z
   .object({
@@ -22,21 +27,16 @@ const registerFormSchema = z
       .max(50, 'Username must be at most 50 characters')
       .regex(USERNAME_PATTERN, 'Use only letters, numbers, dot, underscore, or hyphen'),
     email: emailSchema,
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .max(72, 'Password must be at most 72 characters'),
+    password: passwordSchema,
     confirmPassword: z.string(),
   })
-  .refine((values) => values.password === values.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  })
+  .refine(...confirmationMatches('password'))
 
 type RegisterFormValues = z.infer<typeof registerFormSchema>
 
 export function RegisterForm() {
   const [registered, setRegistered] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(GENERAL_ERROR)
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: { username: '', email: '', password: '', confirmPassword: '' },
@@ -47,6 +47,10 @@ export function RegisterForm() {
       username: values.username,
       email: values.email,
       password: values.password,
+    }).catch((error: unknown) => {
+      const taken = error instanceof ApiError && error.status === CONFLICT
+      setErrorMessage(taken ? TAKEN_ERROR : GENERAL_ERROR)
+      throw error
     })
     setRegistered(true)
   }
@@ -64,11 +68,7 @@ export function RegisterForm() {
   }
 
   return (
-    <AuthForm
-      form={form}
-      onSubmit={onSubmit}
-      errorMessage="That username or email is already taken, or the details were rejected."
-    >
+    <AuthForm form={form} onSubmit={onSubmit} errorMessage={errorMessage}>
       <TextField<RegisterFormValues> name="username" label="Username" autoComplete="username" />
       <TextField<RegisterFormValues> name="email" label="Email" type="email" autoComplete="email" />
       <TextField<RegisterFormValues>

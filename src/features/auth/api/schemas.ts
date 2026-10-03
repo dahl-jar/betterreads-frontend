@@ -25,6 +25,11 @@ export type ResetPasswordInput = {
   newPassword: string
 }
 
+export type ChangePasswordInput = {
+  currentPassword: string
+  newPassword: string
+}
+
 export type VerifyEmailInput = {
   token: string
 }
@@ -39,8 +44,4 @@ export type { CurrentUser, LoginInput, RegisterInput }
 
 export function parseAuthResponse(raw: unknown): AuthResponse {
   return authResponseSchema.parse(raw)
-}
-
-export function parseCurrentUser(raw: unknown): CurrentUser {
-  return currentUserSchema.parse(raw)
 }

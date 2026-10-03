@@ -1,58 +1,64 @@
 import { Link } from 'react-router-dom'
 
 import { StaticPage } from '@/app/components/StaticPage'
+import { CONTACT_EMAIL } from '@/app/siteLinks'
 
 export function PrivacyRoute() {
   return (
-    <StaticPage title="Privacy policy">
-      <p>
-        BetterReads keeps the information needed to run your account, reading record, and public
-        discussions.
-      </p>
-      <h2>Account and reading data</h2>
-      <p>
-        Your account data includes your username, email address, and any profile fields you add. We
-        never store your password as entered. We store a one-way BCrypt hash so we can check it when
-        you sign in.
-      </p>
-      <p>
-        Your shelves, reading dates, and notes are private. Reviews and ratings are public without
-        an author name. Comments and replies are public and show your username.
-      </p>
-      <h2>Searches</h2>
-      <p>
-        Search terms are logged briefly. We send the term without your account identity to
-        Hardcover. When Hardcover has no result, we send the same term to OpenLibrary.
-      </p>
-      <h2>Services we use</h2>
-      <p>
-        Cloudflare processes web traffic and hosts the website and encrypted backups. Resend
-        delivers account emails. Grafana Cloud receives operational logs and metrics. Messages sent
-        to our contact address pass through Cloudflare Email Routing and Gmail.
-      </p>
-      <h2>Cookies</h2>
-      <p>
-        Signed-in accounts use one 30-day cookie to renew a session when you return or reload a
-        page. BetterReads does not set tracking cookies. See the{' '}
-        <Link to="/cookies">cookie policy</Link>.
-      </p>
-      <h2>Deleting your account</h2>
-      <p>
-        Deleting your account immediately disables it and signs out the browser making the request.
-        The account cannot be restored. A device that is already signed in may keep access for up to
-        two hours.
-      </p>
-      <p>
-        After 30 days, your account, shelf, review, rating, and comment data are deleted from the
-        live service. During those 30 days, reviews and ratings remain public without your identity,
-        and your username is removed from comments and replies. Encrypted backups may retain the
-        deleted data for about another 30 days.
-      </p>
-      <p>
-        Mail-delivery and operational records follow separate retention periods and are not removed
-        by account deletion. To ask about your data, use the contact link in the footer.
-      </p>
-      <p>If this policy changes, we will update this page.</p>
-    </StaticPage>
+    <StaticPage
+      title="Privacy policy"
+      lead="We keep only what we need to run your account."
+      summary={[
+        'No ads and no tracking cookies.',
+        'Your shelves are private.',
+        'You can delete your account at any time.',
+      ]}
+      sections={[
+        {
+          heading: 'What we store',
+          body: "Your username, email address, and password. The password is stored in a protected form that can't be read back. We also store your shelves, ratings, reviews, and comments.",
+        },
+        {
+          heading: 'What others can see',
+          body: 'Your shelves and reading dates are private. Your ratings, reviews, and comments are public and show your username.',
+        },
+        {
+          heading: 'Searches',
+          body: "When you search, the search words go to outside book databases so we can find books we don't have yet. Nothing about you goes with them. We keep search words in our logs for a short time.",
+        },
+        {
+          heading: 'Who helps us run the site',
+          body: 'Other companies host the site, deliver our emails, and keep our logs. They handle your data only to do that work.',
+        },
+        {
+          heading: 'Cookies',
+          body: (
+            <>
+              One cookie keeps you signed in. See the{' '}
+              <Link to="/cookies" className="font-semibold text-brand underline underline-offset-2">
+                cookie policy
+              </Link>
+              .
+            </>
+          ),
+        },
+        {
+          heading: 'Deleting your account',
+          body: "Deleting your account disables it at once, and it can't be restored. After 30 days your data is removed from the site. Until then your ratings and reviews stay up without your name. Backups can keep a copy for up to 8 more weeks.",
+        },
+        {
+          heading: 'Questions',
+          body: (
+            <>
+              Email{' '}
+              <strong className="whitespace-nowrap rounded-md bg-brand-soft px-1.5 py-0.5 font-semibold text-brand">
+                {CONTACT_EMAIL}
+              </strong>
+              . If this policy changes, we update this page.
+            </>
+          ),
+        },
+      ]}
+    />
   )
 }

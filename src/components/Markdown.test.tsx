@@ -37,7 +37,7 @@ describe('Markdown', () => {
   })
 
   it('should drop the target of a javascript or mailto link', () => {
-    const source = '[run](javascript:alert(1)) and [mail](mailto:darrow@example.test)'
+    const source = '[run](javascript:alert(1)) and [mail](mailto:user@example.test)'
 
     render(<Markdown source={source} />)
 

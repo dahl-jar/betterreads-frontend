@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { holdResponse } from '@/testing/holdResponse'
 import { server } from '@/testing/msw-server'
 
 import {
@@ -30,25 +31,19 @@ type HeldRequest = {
 
 function holdProtectedRequest(): HeldRequest {
   let requestSignal: AbortSignal | undefined
-  let markStarted: () => void = () => undefined
-  let releaseRequest: () => void = () => undefined
-  const started = new Promise<void>((resolve) => {
-    markStarted = resolve
-  })
-  const held = new Promise<void>((resolve) => {
-    releaseRequest = resolve
-  })
+  const started = holdResponse()
+  const response = holdResponse()
   server.use(
     http.get(PROTECTED_URL, async ({ request }) => {
       requestSignal = request.signal
-      markStarted()
-      await held
-      return HttpResponse.json({ data: { username: 'darrow' } })
+      started.release()
+      await response.held
+      return HttpResponse.json({ data: { username: 'user' } })
     }),
   )
   return {
-    started,
-    release: () => releaseRequest(),
+    started: started.held,
+    release: response.release,
     getSignal: () => requestSignal,
   }
 }
@@ -61,11 +56,11 @@ afterEach(() => {
 
 describe('envelope unwrap', () => {
   it('should return the data member of the success envelope', async () => {
-    server.use(http.get(PROTECTED_URL, () => HttpResponse.json({ data: { username: 'darrow' } })))
+    server.use(http.get(PROTECTED_URL, () => HttpResponse.json({ data: { username: 'user' } })))
 
     const result = await apiGet('/api/v1/auth/me')
 
-    expect(result).toEqual({ username: 'darrow' })
+    expect(result).toEqual({ username: 'user' })
   })
 
   it('should reject a success envelope with no data member', async () => {
@@ -314,10 +309,7 @@ describe('apiGet auth refresh', () => {
   it('should share one refresh between concurrent 401s', async () => {
     setAccessToken('stale-token')
     let staleRequests = 0
-    let releaseRefresh: () => void = () => undefined
-    const refreshPending = new Promise<void>((resolve) => {
-      releaseRefresh = resolve
-    })
+    const refreshPending = holdResponse()
     server.use(
       http.get(PROTECTED_URL, ({ request }) => {
         if (request.headers.get('Authorization') === 'Bearer fresh-token') {
@@ -328,7 +320,7 @@ describe('apiGet auth refresh', () => {
       }),
     )
     const refreshHandler = vi.fn(async () => {
-      await refreshPending
+      await refreshPending.held
       setAccessToken('fresh-token')
     })
     setRefreshHandler(refreshHandler)
@@ -336,7 +328,7 @@ describe('apiGet auth refresh', () => {
     const requests = Promise.all([apiGet('/api/v1/auth/me'), apiGet('/api/v1/auth/me')])
     void requests.catch(() => undefined)
     await vi.waitFor(() => expect(staleRequests).toBe(2))
-    releaseRefresh()
+    refreshPending.release()
 
     await expect(requests).resolves.toEqual([{ ok: true }, { ok: true }])
     expect(refreshHandler).toHaveBeenCalledTimes(1)

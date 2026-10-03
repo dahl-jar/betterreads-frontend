@@ -10,6 +10,17 @@ import comment from './mocks/comment.json'
 
 const BASE = 'http://localhost:8080/api/v1'
 
+function stubThreadAcceptingPosts() {
+  server.use(
+    http.get(`${BASE}/reviews/7/comments`, () =>
+      HttpResponse.json({ data: [comment], meta: { total: 1, offset: 0, limit: 20 } }),
+    ),
+    http.post(`${BASE}/reviews/7/comments`, () =>
+      HttpResponse.json({ data: { ...comment, id: 9 } }, { status: 201 }),
+    ),
+  )
+}
+
 describe('useReviewComments', () => {
   it('should stay idle until loaded', () => {
     let requested = false
@@ -26,7 +37,7 @@ describe('useReviewComments', () => {
     expect(requested).toBe(false)
   })
 
-  it('should load the first page when load is called', async () => {
+  it('should load the first page on request', async () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
         HttpResponse.json({
@@ -45,7 +56,7 @@ describe('useReviewComments', () => {
     expect(result.current.hasMore).toBe(false)
   })
 
-  it('should flag more pages when the total exceeds the loaded count', async () => {
+  it('should offer more comments when the total is larger than the loaded list', async () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, () =>
         HttpResponse.json({
@@ -62,7 +73,7 @@ describe('useReviewComments', () => {
     await waitFor(() => expect(result.current.hasMore).toBe(true))
   })
 
-  it('should append the next page when loadMore runs', async () => {
+  it('should add the next page below the loaded comments', async () => {
     server.use(
       http.get(`${BASE}/reviews/7/comments`, ({ request }) => {
         const offset = new URL(request.url).searchParams.get('offset')
@@ -84,18 +95,8 @@ describe('useReviewComments', () => {
     expect(result.current.hasMore).toBe(false)
   })
 
-  it('should prepend a posted comment', async () => {
-    server.use(
-      http.get(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({
-          data: [comment],
-          meta: { total: 1, offset: 0, limit: 20 },
-        }),
-      ),
-      http.post(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: { ...comment, id: 9 } }, { status: 201 }),
-      ),
-    )
+  it('should put a posted comment at the top', async () => {
+    stubThreadAcceptingPosts()
 
     const { result } = renderHook(() => useReviewComments(7))
     await result.current.load()
@@ -144,17 +145,7 @@ describe('useReviewComments', () => {
   })
 
   it('should keep a comment posted while the first page was loading', async () => {
-    server.use(
-      http.get(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({
-          data: [comment],
-          meta: { total: 1, offset: 0, limit: 20 },
-        }),
-      ),
-      http.post(`${BASE}/reviews/7/comments`, () =>
-        HttpResponse.json({ data: { ...comment, id: 9 } }, { status: 201 }),
-      ),
-    )
+    stubThreadAcceptingPosts()
     const { result } = renderHook(() => useReviewComments(7))
 
     const loading = result.current.load()

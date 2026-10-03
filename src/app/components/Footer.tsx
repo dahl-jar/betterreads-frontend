@@ -1,15 +1,12 @@
 import { Link } from 'react-router-dom'
 
-import { Wordmark } from './Wordmark'
+import { CONTACT_LINK, LEGAL_LINKS, type SiteLink } from '@/app/siteLinks'
 
-type FooterLink = {
-  label: string
-  to: string
-}
+import { Wordmark } from './Wordmark'
 
 type FooterColumn = {
   heading: string
-  links: FooterLink[]
+  links: SiteLink[]
 }
 
 const COLUMNS: FooterColumn[] = [
@@ -22,18 +19,11 @@ const COLUMNS: FooterColumn[] = [
   },
   {
     heading: 'Help',
-    links: [
-      { label: 'FAQ', to: '/help' },
-      { label: 'Contact', to: '/help#contact' },
-    ],
+    links: [{ label: 'FAQ', to: '/help' }, CONTACT_LINK],
   },
   {
     heading: 'Legal',
-    links: [
-      { label: 'Privacy policy', to: '/privacy' },
-      { label: 'Cookie policy', to: '/cookies' },
-      { label: 'Terms of service', to: '/terms' },
-    ],
+    links: LEGAL_LINKS,
   },
 ]
 
@@ -68,8 +58,8 @@ export function Footer() {
       </div>
       <div className="mx-auto max-w-6xl border-t border-rule px-5 py-6 text-xs text-fg-3">
         <p>
-          We set one 30-day cookie to renew your session when you return or reload a page. We use no
-          tracking or advertising cookies. See the cookie policy for details.
+          We set one cookie to keep you signed in. We use no tracking or advertising cookies. See
+          the cookie policy for details.
         </p>
         <p className="mt-2">© {CURRENT_YEAR} BetterReads.</p>
       </div>

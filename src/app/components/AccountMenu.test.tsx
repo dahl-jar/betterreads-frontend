@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
-import { afterEach, describe, expect, it } from 'vitest'
+import { type ReactElement } from 'react'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
@@ -11,34 +12,35 @@ import { AccountMenu } from './AccountMenu'
 
 const BASE = 'http://localhost:8080/api/v1/auth'
 
+type User = ReturnType<typeof renderWithProviders>['user']
+
+async function openMenu(ui: ReactElement = <AccountMenu username="user" />) {
+  const rendered = renderWithProviders(ui)
+  await rendered.user.click(await screen.findByRole('button', { name: /account menu/i }))
+  return rendered
+}
+
+beforeEach(stubSignedIn)
+
 afterEach(() => {
   clearAccessToken()
   setRefreshHandler(undefined)
 })
 
 describe('AccountMenu', () => {
-  it('should open the account menu', async () => {
-    stubSignedIn()
-    const { user } = renderWithProviders(<AccountMenu username="darrow" />)
+  it('should link each menu row to its page', async () => {
+    await openMenu(<AccountMenu username="user" displayName="User" />)
 
-    await user.click(await screen.findByRole('button', { name: /account menu/i }))
-
-    expect(screen.getByRole('menuitem', { name: /profile/i })).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: /settings/i })).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: /log out/i })).toBeInTheDocument()
-  })
-
-  it("should link to the reader's books", async () => {
-    stubSignedIn()
-    const { user } = renderWithProviders(<AccountMenu username="darrow" />)
-
-    await user.click(await screen.findByRole('button', { name: /account menu/i }))
-
+    expect(screen.getByRole('link', { name: /view your profile/i })).toHaveAttribute(
+      'href',
+      '/profile',
+    )
     expect(screen.getByRole('menuitem', { name: 'My books' })).toHaveAttribute('href', '/shelf')
+    expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute('href', '/settings')
+    expect(screen.getByRole('menuitem', { name: 'Help' })).toHaveAttribute('href', '/help')
   })
 
   it('should log out when log out is chosen', async () => {
-    stubSignedIn()
     let loggedOut = false
     server.use(
       http.post(`${BASE}/logout`, () => {
@@ -46,45 +48,44 @@ describe('AccountMenu', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    const { user } = renderWithProviders(<AccountMenu username="darrow" />)
+    const { user } = await openMenu()
 
-    await user.click(await screen.findByRole('button', { name: /account menu/i }))
     await user.click(screen.getByRole('menuitem', { name: /log out/i }))
 
     await waitFor(() => expect(loggedOut).toBe(true))
   })
 
-  it('should close the menu on escape', async () => {
-    stubSignedIn()
-    const { user } = renderWithProviders(<AccountMenu username="darrow" />)
+  it.each([
+    [
+      'a chosen row',
+      (user: User) => user.click(screen.getByRole('menuitem', { name: 'Settings' })),
+    ],
+    ['escape', (user: User) => user.keyboard('{Escape}')],
+    [
+      'the Close menu button',
+      (user: User) => user.click(screen.getByRole('button', { name: 'Close menu' })),
+    ],
+    [
+      'a tap on the drawer backdrop',
+      (user: User) => user.click(screen.getByTestId('account-menu-backdrop')),
+    ],
+  ])('should close the menu on %s', async (_trigger, close) => {
+    const { user } = await openMenu()
 
-    await user.click(await screen.findByRole('button', { name: /account menu/i }))
-    await user.keyboard('{Escape}')
+    await close(user)
 
     expect(screen.queryByRole('menuitem', { name: /log out/i })).toBeNull()
   })
 
   it('should close the menu on a press outside it', async () => {
-    stubSignedIn()
-    const { user } = renderWithProviders(
+    const { user } = await openMenu(
       <>
-        <AccountMenu username="darrow" />
+        <AccountMenu username="user" />
         <p>Elsewhere on the page</p>
       </>,
     )
-    await user.click(await screen.findByRole('button', { name: /account menu/i }))
 
     await user.click(screen.getByText('Elsewhere on the page'))
-
-    expect(screen.queryByRole('menuitem', { name: /log out/i })).toBeNull()
-  })
-
-  it('should close the menu when the drawer backdrop is tapped', async () => {
-    stubSignedIn()
-    const { user } = renderWithProviders(<AccountMenu username="darrow" />)
-
-    await user.click(await screen.findByRole('button', { name: /account menu/i }))
-    await user.click(screen.getByTestId('account-menu-backdrop'))
 
     expect(screen.queryByRole('menuitem', { name: /log out/i })).toBeNull()
   })

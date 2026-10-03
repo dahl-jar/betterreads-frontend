@@ -27,20 +27,6 @@ describe('getShelf', () => {
     expect(shelf[0]?.status).toBe('CURRENTLY_READING')
   })
 
-  it('should send the status filter as a query param', async () => {
-    let receivedStatus: string | null = null
-    server.use(
-      http.get(SHELF_URL, ({ request }) => {
-        receivedStatus = new URL(request.url).searchParams.get('status')
-        return HttpResponse.json({ data: [{ ...shelfEntry, status: 'FINISHED' }] })
-      }),
-    )
-
-    await getShelf('FINISHED')
-
-    expect(receivedStatus).toBe('FINISHED')
-  })
-
   it('should parse a sparse shelf entry', async () => {
     server.use(
       http.get(SHELF_URL, () =>

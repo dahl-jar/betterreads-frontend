@@ -76,7 +76,7 @@ describe('SearchResults', () => {
     expect(screen.getByRole('status', { name: /loading.*results/i })).toBeInTheDocument()
   })
 
-  it('should show a retry affordance when the search failed', () => {
+  it('should show the error text when the search fails', () => {
     renderResults(<SearchResults status="error" hits={[]} query="dune" />)
 
     expect(
@@ -138,13 +138,13 @@ describe('SearchResults', () => {
   it('should show three of four authors followed by an ellipsis', () => {
     const anthology: BookSearchDocument = {
       ...dune,
-      authors: ['Pierce Brown', 'Christopher Ruocchio', 'Darrow of Lykos', 'Hadrian Marlowe'],
+      authors: ['Pierce Brown', 'Christopher Ruocchio', 'Third Author', 'Fourth Author'],
     }
     renderResults(<SearchResults status="success" hits={[anthology]} query="dune" />)
 
     const row = screen.getByRole('link', { name: /dune/i })
-    expect(row).toHaveTextContent('Pierce Brown, Christopher Ruocchio, Darrow of Lykos …')
-    expect(row).not.toHaveTextContent('Hadrian Marlowe')
+    expect(row).toHaveTextContent('Pierce Brown, Christopher Ruocchio, Third Author …')
+    expect(row).not.toHaveTextContent('Fourth Author')
   })
 
   it('should show the publication year on a row', () => {

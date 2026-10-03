@@ -5,6 +5,7 @@ import { BookCover } from '@/components/BookCover'
 import { Markdown } from '@/components/Markdown'
 import { SectionHeading } from '@/components/SectionHeading'
 import { StarRating } from '@/components/StarRating'
+import { bookPath } from '@/lib/bookPath'
 import { formatDate } from '@/lib/formatDate'
 
 import { type RecentReview } from '../api/getRecentReviews'
@@ -40,7 +41,7 @@ function RecentReviewItem({ review }: { review: RecentReview }) {
           </time>
         </div>
         <p className="-mx-1 mt-1.5 truncate px-1 py-0.5 font-title">
-          <Link to={`/books/${book.key}`} className="text-fg no-underline hover-mark">
+          <Link to={bookPath(book.key)} className="text-fg no-underline hover-mark">
             {book.title}
           </Link>
         </p>

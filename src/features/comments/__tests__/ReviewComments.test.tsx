@@ -15,23 +15,40 @@ const BASE = 'http://localhost:8080/api/v1'
 const THREAD_URL = `${BASE}/reviews/7/comments`
 const SERVER_ERROR = 500
 
+function commentPage(comments: Record<string, unknown>[], total = comments.length) {
+  return HttpResponse.json({ data: comments, meta: { total, offset: 0, limit: 20 } })
+}
+
 function stubThread(comments: Record<string, unknown>[], total = comments.length) {
   const requests: string[] = []
   server.use(
     http.get(THREAD_URL, ({ request }) => {
       requests.push(request.url)
-      return HttpResponse.json({ data: comments, meta: { total, offset: 0, limit: 20 } })
+      return commentPage(comments, total)
     }),
   )
   return requests
 }
 
-function stubReplies(replies: Record<string, unknown>[], total = replies.length) {
-  server.use(
-    http.get(`${BASE}/comments/1/replies`, () =>
-      HttpResponse.json({ data: replies, meta: { total, offset: 0, limit: 20 } }),
-    ),
-  )
+async function openSignedInThread() {
+  stubSignedIn()
+  stubThread([comment])
+  const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
+  await user.click(await screen.findByRole('button', { name: '1 comment' }))
+  return user
+}
+
+async function showReplies(
+  replyCount: number,
+  replies: Record<string, unknown>[],
+  total = replies.length,
+) {
+  stubSignedOut()
+  stubThread([{ ...comment, replyCount }])
+  server.use(http.get(`${BASE}/comments/1/replies`, () => commentPage(replies, total)))
+  const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
+  await user.click(await screen.findByRole('button', { name: '1 comment' }))
+  await user.click(await screen.findByRole('button', { name: `Show ${replyCount} replies` }))
 }
 
 afterEach(() => {
@@ -79,7 +96,7 @@ describe('ReviewComments', () => {
     )
   })
 
-  it('should show a load-more control when more pages remain', async () => {
+  it('should offer more comments when some are not shown', async () => {
     stubSignedOut()
     stubThread([comment], 4)
     const { user } = renderWithProviders(
@@ -114,15 +131,12 @@ describe('ReviewComments', () => {
   })
 
   it('should count a posted comment once the thread is closed', async () => {
-    stubSignedIn()
-    stubThread([comment])
     server.use(
       http.post(THREAD_URL, () =>
         HttpResponse.json({ data: { ...comment, id: 9, body: 'My comment' } }, { status: 201 }),
       ),
     )
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
-    await user.click(await screen.findByRole('button', { name: '1 comment' }))
+    const user = await openSignedInThread()
     await user.type(await screen.findByRole('textbox', { name: 'Add a comment' }), 'My comment')
     await user.click(screen.getByRole('button', { name: 'Post' }))
     await screen.findByText('My comment')
@@ -148,46 +162,26 @@ describe('ReviewComments', () => {
   })
 
   it('should give the reply textarea an accessible name', async () => {
-    stubSignedIn()
-    stubThread([comment])
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
-
-    await user.click(await screen.findByRole('button', { name: '1 comment' }))
+    const user = await openSignedInThread()
     await user.click(await screen.findByRole('button', { name: 'Reply' }))
 
     expect(screen.getByRole('textbox', { name: 'Write a reply' })).toBeInTheDocument()
   })
 
   it('should load replies when expanded', async () => {
-    stubSignedOut()
-    stubThread([{ ...comment, replyCount: 2 }])
-    stubReplies([{ ...comment, id: 10, body: 'A reply' }])
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
-
-    await user.click(await screen.findByRole('button', { name: '1 comment' }))
-    await user.click(await screen.findByRole('button', { name: 'Show 2 replies' }))
+    await showReplies(2, [{ ...comment, id: 10, body: 'A reply' }])
 
     expect(await screen.findByText('A reply')).toBeInTheDocument()
   })
 
-  it('should paginate replies', async () => {
-    stubSignedOut()
-    stubThread([{ ...comment, replyCount: 5 }])
-    stubReplies([{ ...comment, id: 10, body: 'First reply' }], 5)
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
-
-    await user.click(await screen.findByRole('button', { name: '1 comment' }))
-    await user.click(await screen.findByRole('button', { name: 'Show 5 replies' }))
+  it('should offer more replies when some are not shown', async () => {
+    await showReplies(5, [{ ...comment, id: 10, body: 'First reply' }], 5)
 
     expect(await screen.findByRole('button', { name: 'Show more replies' })).toBeInTheDocument()
   })
 
   it('should place the comment box after the comments', async () => {
-    stubSignedIn()
-    stubThread([comment])
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
-
-    await user.click(await screen.findByRole('button', { name: '1 comment' }))
+    await openSignedInThread()
 
     const posted = await screen.findByText('Comment 1')
     const box = screen.getByRole('textbox', { name: 'Add a comment' })

@@ -239,10 +239,14 @@ describe('BookRoute', () => {
   })
 
   it.each([
-    { status: 'WANT_TO_READ', stamp: /Want to read\s*Jan 5, 2026/ },
-    { status: 'CURRENTLY_READING', stamp: /Currently reading\s*Jan 20, 2026/ },
-    { status: 'DROPPED', stamp: /Dropped\s*Jan 5, 2026/ },
-  ])('should date a $status stamp', async ({ status, stamp }) => {
+    { label: 'Want to read', status: 'WANT_TO_READ', stamp: /Want to read\s*Jan 5, 2026/ },
+    {
+      label: 'Currently reading',
+      status: 'CURRENTLY_READING',
+      stamp: /Currently reading\s*Jan 20, 2026/,
+    },
+    { label: 'Did not finish', status: 'DROPPED', stamp: /Did not finish\s*Jan 5, 2026/ },
+  ])('should date a "$label" stamp', async ({ status, stamp }) => {
     stubBookPage(reviewTotal(0))
     stubShelfCounts(() => HttpResponse.json(shelfCounts))
     stubReader([{ ...DATED_ENTRY, status }])

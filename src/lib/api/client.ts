@@ -21,7 +21,7 @@ const fieldErrorSchema = z.object({
   message: z.string(),
 })
 
-export type FieldError = z.infer<typeof fieldErrorSchema>
+type FieldError = z.infer<typeof fieldErrorSchema>
 
 const pageMetaSchema = z.object({
   total: z.number(),
@@ -29,7 +29,7 @@ const pageMetaSchema = z.object({
   limit: z.number(),
 })
 
-export type PageMeta = z.infer<typeof pageMetaSchema>
+type PageMeta = z.infer<typeof pageMetaSchema>
 
 export type Page<T> = {
   data: T
@@ -77,6 +77,7 @@ export class ApiError extends Error {
 
 type RequestOptions = {
   signal?: AbortSignal
+  retry?: boolean
 }
 
 type RefreshHandler = () => Promise<void>
@@ -253,7 +254,8 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 /**
  * Retries GET, PUT, and DELETE after network errors or 502/503/504 responses.
- * POST and PATCH are sent once to prevent duplicate writes.
+ * POST is sent once to prevent duplicate writes, and so is any request
+ * made with `retry: false`.
  */
 async function sendWithRetry(
   path: string,
@@ -261,7 +263,7 @@ async function sendWithRetry(
   options: RequestOptions,
   serializedBody: string | undefined,
 ): Promise<Response> {
-  const retryable = IDEMPOTENT_METHODS.has(method)
+  const retryable = isRetryable(method, options)
   let lastError: unknown
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
@@ -287,6 +289,14 @@ async function sendWithRetry(
     }
   }
 
+  return lastResponseOrThrow(lastError)
+}
+
+function isRetryable(method: string, options: RequestOptions): boolean {
+  return options.retry !== false && IDEMPOTENT_METHODS.has(method)
+}
+
+function lastResponseOrThrow(lastError: unknown): Response {
   if (lastError instanceof Response) {
     return lastError
   }
@@ -333,15 +343,6 @@ export async function apiPut(
   options: RequestOptions = {},
 ): Promise<unknown> {
   const envelope = await request(path, 'PUT', options, body)
-  return envelope.data
-}
-
-export async function apiPatch(
-  path: string,
-  body: unknown,
-  options: RequestOptions = {},
-): Promise<unknown> {
-  const envelope = await request(path, 'PATCH', options, body)
   return envelope.data
 }
 

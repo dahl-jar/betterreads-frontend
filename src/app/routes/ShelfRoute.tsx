@@ -1,13 +1,17 @@
+import { useSearchParams } from 'react-router-dom'
+
 import { AuthenticatedPage } from '@/app/components/AuthenticatedPage'
+import { rateBook } from '@/features/reviews/api/rateBook'
 import { ShelfList } from '@/features/shelf/components/ShelfList'
+import { parseShelfFilter, SHELF_PARAM } from '@/features/shelf/utils/shelfFilters'
 
 export function ShelfRoute() {
+  const [searchParams] = useSearchParams()
+  const filter = parseShelfFilter(searchParams.get(SHELF_PARAM))
+
   return (
-    <AuthenticatedPage>
-      <h1 className="font-title text-3xl text-fg">My books</h1>
-      <div className="mt-6">
-        <ShelfList />
-      </div>
+    <AuthenticatedPage width="wide">
+      <ShelfList key={filter} initialFilter={filter} onRate={rateBook} />
     </AuthenticatedPage>
   )
 }

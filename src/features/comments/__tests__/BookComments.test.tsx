@@ -4,12 +4,19 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedIn, stubSignedOut } from '@/testing/authHandlers'
+import { emptyPage } from '@/testing/emptyPage'
 import { server } from '@/testing/msw-server'
 import { renderWithProviders, screen } from '@/testing/test-utils'
 
 import { BookComments } from '../components/BookComments'
 
+import comment from './mocks/comment.json'
+
 const BASE = 'http://localhost:8080/api/v1'
+
+function stubNoComments() {
+  server.use(http.get(`${BASE}/books/OL1W/comments`, emptyPage))
+}
 
 afterEach(() => {
   clearAccessToken()
@@ -24,15 +31,7 @@ describe('BookComments', () => {
       http.get(`${BASE}/books/OL1W/comments`, ({ request }) => {
         path = new URL(request.url).pathname
         return HttpResponse.json({
-          data: [
-            {
-              id: 1,
-              body: 'Great read',
-              author: 'mustang',
-              createdAt: '2026-06-01T10:00:00Z',
-              replyCount: 0,
-            },
-          ],
+          data: [{ ...comment, body: 'Great read' }],
           meta: { total: 1, offset: 0, limit: 20 },
         })
       }),
@@ -47,11 +46,7 @@ describe('BookComments', () => {
 
   it('should give the comment textarea an accessible name', async () => {
     stubSignedIn()
-    server.use(
-      http.get(`${BASE}/books/OL1W/comments`, () =>
-        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
-      ),
-    )
+    stubNoComments()
 
     renderWithProviders(<BookComments bookKey="OL1W" />)
 
@@ -60,11 +55,7 @@ describe('BookComments', () => {
 
   it('should show an empty-discussion prompt when there are no comments', async () => {
     stubSignedOut()
-    server.use(
-      http.get(`${BASE}/books/OL1W/comments`, () =>
-        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
-      ),
-    )
+    stubNoComments()
 
     renderWithProviders(<BookComments bookKey="OL1W" />)
 

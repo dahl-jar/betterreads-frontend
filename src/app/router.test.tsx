@@ -7,6 +7,7 @@ import { AuthProvider } from '@/app/components/AuthProvider'
 import { clearAccessToken } from '@/lib/api/token'
 import auth from '@/testing/mocks/auth.json'
 import book from '@/testing/mocks/book.json'
+import myShelfCounts from '@/testing/mocks/my-shelf-counts.json'
 import noCommunityRating from '@/testing/mocks/no-community-rating.json'
 import { server } from '@/testing/msw-server'
 
@@ -31,6 +32,9 @@ function renderAt(path: string, authenticated = false) {
       HttpResponse.json({ data: { total: 0 } }),
     ),
     http.get('http://localhost:8080/api/v1/me/books', () => HttpResponse.json({ data: [] })),
+    http.get('http://localhost:8080/api/v1/me/books/counts', () =>
+      HttpResponse.json(myShelfCounts),
+    ),
     http.get('http://localhost:8080/api/v1/reviews/recent', () => HttpResponse.json({ data: [] })),
   )
   const router = createMemoryRouter(routes, { initialEntries: [path] })
@@ -42,7 +46,7 @@ function renderAt(path: string, authenticated = false) {
 }
 
 describe('router', () => {
-  it('should render a lazy form route', async () => {
+  it('should show the log in page', async () => {
     renderAt('/login')
 
     await waitFor(() =>
@@ -50,7 +54,7 @@ describe('router', () => {
     )
   })
 
-  it('should render the eager landing route synchronously', () => {
+  it('should show the home page without waiting for a download', () => {
     renderAt('/')
 
     expect(screen.getByRole('heading', { level: 1, name: /search/i })).toBeInTheDocument()

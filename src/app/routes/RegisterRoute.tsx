@@ -5,6 +5,7 @@ export function RegisterRoute() {
   return (
     <AuthLayout
       title="Create your account"
+      backdrop
       footer={{ prompt: 'Already have an account?', linkLabel: 'Log in', to: '/login' }}
     >
       <RegisterForm />

@@ -4,6 +4,7 @@ import { BookCover } from '@/components/BookCover'
 import { StarIcon } from '@/components/icons'
 import { SlideRow } from '@/components/SlideRow'
 import { Skeleton } from '@/components/ui/skeleton'
+import { bookPath } from '@/lib/bookPath'
 import { formatRating } from '@/lib/formatRating'
 
 import { type BookCard } from '../api/getBookList'
@@ -35,7 +36,7 @@ function BookListCard({ card, label }: { card: BookCard; label: string }) {
 
   return (
     <li className={CARD_CLASS}>
-      <Link to={`/books/${card.key}`} className="group block no-underline">
+      <Link to={bookPath(card.key)} className="group block no-underline">
         <BookCover
           coverUrl={card.coverUrl}
           title={card.title}

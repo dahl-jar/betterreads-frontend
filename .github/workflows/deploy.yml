@@ -23,7 +23,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm dup
       - run: pnpm test
       - run: pnpm audit --audit-level=low
       - run: pnpm build

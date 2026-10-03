@@ -5,6 +5,8 @@ import { GenreBadge } from '@/components/GenreBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { SearchStatus } from '@/features/search/hooks/useSearch'
 import { groupBySeries, positionIn } from '@/features/search/lib/groupBySeries'
+import { bookNoun } from '@/lib/bookNoun'
+import { bookPath } from '@/lib/bookPath'
 import { formatAuthors } from '@/lib/formatAuthors'
 import { uniqueSubjects } from '@/lib/subjects'
 
@@ -80,7 +82,7 @@ export function SearchResults({ status, hits, query }: SearchResultsProps) {
                 {group.seriesName}
               </h3>
               <span className="pb-1 text-xs text-fg-3">
-                {group.books.length === 1 ? '1 book' : `${group.books.length} books`}
+                {group.books.length} {bookNoun(group.books.length)}
               </span>
             </div>
             <ul className="mt-1.5">
@@ -104,7 +106,7 @@ export function SearchResults({ status, hits, query }: SearchResultsProps) {
 function BookRow({ hit, position }: BookRowProps) {
   return (
     <Link
-      to={`/books/${hit.bookId}`}
+      to={bookPath(hit.bookId)}
       className="flex items-center gap-4 rounded-[3px] px-3 py-2.5 no-underline hover:bg-sunken"
     >
       <BookCover

@@ -111,71 +111,6 @@
 }
 
 @layer components {
-  /* Static pages pass plain h2/p/a markup, so each h2 opens a section with a
-     divider above it. */
-  .static-content {
-    max-width: 68ch;
-    color: var(--color-fg-2);
-    font-size: 1.0625rem;
-    line-height: 1.75;
-  }
-
-  .static-content > * + * {
-    margin-top: 1.05rem;
-  }
-
-  /* Lead paragraph: the one that opens the page before any heading. */
-  .static-content > p:first-child {
-    color: var(--color-fg);
-    font-size: 1.1875rem;
-    line-height: 1.7;
-  }
-
-  .static-content h2 {
-    margin-top: 2.5rem;
-    border-top: 1px solid var(--color-rule);
-    padding-top: 1.75rem;
-    color: var(--color-fg);
-    font-family: var(--font-title);
-    font-size: 1.375rem;
-    font-weight: 700;
-    line-height: 1.3;
-    scroll-margin-top: 1.5rem;
-  }
-
-  /* The first heading on an FAQ-style page (Help) opens the page with no lead
-     paragraph above it, so it carries no divider and no extra top gap. */
-  .static-content > h2:first-child {
-    margin-top: 0;
-    border-top: 0;
-    padding-top: 0;
-  }
-
-  .static-content h2 + p {
-    margin-top: 0.85rem;
-  }
-
-  .static-content a {
-    color: var(--color-brand);
-    font-weight: 600;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .static-content a:hover {
-    color: var(--color-fg);
-  }
-
-  /* The contact address is plain text for copying. */
-  .static-content .contact-email {
-    border-radius: 0.375rem;
-    background-color: var(--color-brand-soft);
-    padding: 0.1rem 0.4rem;
-    color: var(--color-brand);
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
   /* The live book count, drawn as a split-flap board and centred on the
      headline text around it. */
   .flip-number {
@@ -270,9 +205,27 @@
     }
   }
 
+  .cover-row {
+    animation: cover-row 220s linear infinite;
+  }
+
+  .cover-row-back {
+    animation-direction: reverse;
+  }
+
+  @keyframes cover-row {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .flip-digit[data-flip='true'],
-    .stamp[data-fresh='true'] {
+    .stamp[data-fresh='true'],
+    .cover-row {
       animation: none;
     }
   }
@@ -320,6 +273,28 @@
     border: 1px solid var(--color-rule);
     border-radius: 9999px;
     background-color: var(--color-sunken);
+  }
+}
+
+@utility scrollbar-quiet {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+
+  &:hover {
+    scrollbar-color: var(--color-rule) transparent;
+  }
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: transparent;
+  }
+
+  &:hover::-webkit-scrollbar-thumb {
+    background: var(--color-rule);
   }
 }
 

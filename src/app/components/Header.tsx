@@ -1,7 +1,10 @@
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { SearchForm } from '@/features/search/components/SearchForm'
+import { MyBooksLink } from '@/features/shelf/components/MyBooksLink'
+import { useMyShelfTotal } from '@/features/shelf/hooks/useMyShelfTotal'
 import { useAuth } from '@/hooks/useAuth'
+import { SHELF_PATH } from '@/lib/shelfPath'
 
 import { SEARCH_PATH, searchPath } from '../searchPath'
 
@@ -10,13 +13,12 @@ import { Wordmark } from './Wordmark'
 
 const HOME_PATH = '/'
 
-const NAV_LINK_CLASS = 'hidden text-fg no-underline hover:text-brand sm:block'
-
 export function Header() {
   const { status, user } = useAuth()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const shelfTotal = useMyShelfTotal(status === 'authenticated')
   const query = pathname === SEARCH_PATH ? (searchParams.get('q') ?? '') : ''
 
   const goToSearch = (nextQuery: string) => {
@@ -24,20 +26,20 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-rule">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5 md:gap-8">
-        <Wordmark className="shrink-0 text-xl" />
+    <header className="border-b border-rule bg-ground">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 px-5 sm:h-16 sm:flex-nowrap md:gap-x-8">
+        <Wordmark className="flex h-14 shrink-0 items-center text-xl sm:h-auto" />
 
         {pathname === HOME_PATH ? null : (
-          <SearchForm variant="header" initialQuery={query} onSearch={goToSearch} />
+          <div className="order-last min-w-0 basis-full pb-3 sm:order-none sm:flex-1 sm:basis-auto sm:pb-0 md:max-w-xl">
+            <SearchForm variant="header" initialQuery={query} onSearch={goToSearch} />
+          </div>
         )}
 
-        <nav className="ml-auto flex shrink-0 items-center gap-4 text-sm font-semibold">
+        <nav className="ml-auto flex shrink-0 items-center gap-1 text-sm font-semibold sm:gap-2">
           {status === 'authenticated' && user ? (
             <>
-              <Link to="/shelf" className={NAV_LINK_CLASS}>
-                My books
-              </Link>
+              <MyBooksLink count={shelfTotal} current={pathname === SHELF_PATH} />
               <AccountMenu
                 username={user.username}
                 displayName={user.displayName}
@@ -46,7 +48,10 @@ export function Header() {
             </>
           ) : (
             <>
-              <Link to="/login" className={NAV_LINK_CLASS}>
+              <Link
+                to="/login"
+                className="hidden px-3 py-2 text-fg no-underline hover:text-brand sm:block"
+              >
                 Log in
               </Link>
               <Link

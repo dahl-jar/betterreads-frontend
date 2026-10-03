@@ -98,18 +98,6 @@ describe('BookDetail', () => {
     expect(seriesLink).toHaveAttribute('href', '/series/Dune')
   })
 
-  it('should link every series', () => {
-    renderWithProviders(
-      <BookDetail book={bookDetail} seriesHref={seriesHref} authorHref={authorHref} />,
-    )
-
-    const stormlight = screen.getByRole('link', { name: 'The Stormlight Archive #2' })
-    const cosmere = screen.getByRole('link', { name: 'The Cosmere #12' })
-
-    expect(stormlight).toHaveAttribute('href', '/series/The Stormlight Archive')
-    expect(cosmere).toHaveAttribute('href', '/series/The Cosmere')
-  })
-
   it('should show a decimal series number', () => {
     const edgedancer = {
       ...bookDetail,

@@ -1,9 +1,11 @@
-import { useCallback, useRef, useState } from 'react'
+import { type ComponentType, useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Avatar } from '@/components/Avatar'
+import { BooksIcon, ChevronDownIcon, HelpIcon, LogoutIcon, SettingsIcon } from '@/components/icons'
 import { useAuth } from '@/hooks/useAuth'
 import { useDismiss } from '@/hooks/useDismiss'
+import { SHELF_PATH } from '@/lib/shelfPath'
 
 type AccountMenuProps = {
   username: string
@@ -12,10 +14,15 @@ type AccountMenuProps = {
 }
 
 const MENU_LINKS = [
-  { to: '/shelf', label: 'My books', phoneOnly: true },
-  { to: '/profile', label: 'Profile', phoneOnly: false },
-  { to: '/settings', label: 'Settings', phoneOnly: false },
+  { to: SHELF_PATH, label: 'My books', icon: BooksIcon, phoneOnly: true },
+  { to: '/settings', label: 'Settings', icon: SettingsIcon, phoneOnly: false },
+  { to: '/help', label: 'Help', icon: HelpIcon, phoneOnly: false },
 ] as const
+
+const MENU_ROW_CLASS =
+  'flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-normal no-underline transition-colors hover:bg-sunken'
+
+const MENU_ICON_CLASS = 'size-[1.125rem] shrink-0'
 
 export function AccountMenu({ username, displayName, avatarUrl }: AccountMenuProps) {
   const { logout } = useAuth()
@@ -34,9 +41,10 @@ export function AccountMenu({ username, displayName, avatarUrl }: AccountMenuPro
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Account menu"
-        className="flex items-center rounded-full transition hover:opacity-80"
+        className={`flex items-center gap-1 rounded-full p-1 pr-1.5 transition-colors hover:bg-sunken ${open ? 'bg-sunken' : ''}`}
       >
-        <Avatar name={name} url={avatarUrl} size="md" />
+        <Avatar name={name} url={avatarUrl} size="sm" />
+        <ChevronDownIcon className="size-4 text-fg-3" />
       </button>
 
       {open ? (
@@ -44,57 +52,54 @@ export function AccountMenu({ username, displayName, avatarUrl }: AccountMenuPro
           <div
             aria-hidden="true"
             data-testid="account-menu-backdrop"
-            onClick={() => setOpen(false)}
+            onClick={close}
             className="fixed inset-0 z-30 bg-fg/40 md:hidden"
           />
-          <div className="fixed right-0 top-0 z-40 flex h-full w-72 flex-col bg-raised shadow-xl md:absolute md:left-1/2 md:right-auto md:top-full md:z-20 md:mt-3.5 md:h-auto md:w-48 md:-translate-x-1/2 md:rounded-lg md:border md:border-rule md:shadow-none">
-            <span
-              aria-hidden="true"
-              className="absolute left-1/2 -top-2 hidden h-4 w-4 -translate-x-1/2 rotate-45 rounded-[3px] border-l border-t border-rule bg-raised md:block"
-            />
-            <div role="menu" className="relative flex h-full flex-col md:overflow-hidden">
-              <div className="flex items-center gap-3 border-b border-rule px-4 py-4 md:px-3 md:py-2">
-                <span className="md:hidden">
-                  <Avatar name={name} url={avatarUrl} size="md" />
-                </span>
+          <div className="fixed right-0 top-0 z-40 flex h-full w-72 flex-col overflow-hidden bg-raised shadow-xl md:absolute md:top-full md:z-20 md:mt-2 md:h-auto md:w-60 md:rounded-[3px] md:border md:border-rule md:shadow-card">
+            <div role="menu" className="flex h-full flex-col">
+              <div className="flex items-center bg-brand-soft">
                 <Link
                   to="/profile"
-                  onClick={() => setOpen(false)}
-                  className="min-w-0 flex-1 no-underline"
+                  onClick={close}
+                  className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 no-underline hover:brightness-95"
                 >
-                  <span className="block truncate font-title text-base font-semibold text-fg md:text-sm">
-                    {name}
+                  <Avatar name={name} url={avatarUrl} size="md" />
+                  <span className="min-w-0">
+                    <span className="block truncate font-title text-sm font-bold text-fg">
+                      {name}
+                    </span>
+                    <span className="block truncate text-xs font-normal text-fg-2">
+                      View your profile
+                    </span>
                   </span>
-                  <span className="block truncate text-sm text-fg-2 md:hidden">@{username}</span>
                 </Link>
                 <button
                   type="button"
                   aria-label="Close menu"
-                  onClick={() => setOpen(false)}
-                  className="-mr-1 shrink-0 p-1 text-2xl leading-none text-fg-2 hover:text-fg md:hidden"
+                  onClick={close}
+                  className="mr-3 shrink-0 p-1 text-2xl leading-none text-fg-2 hover:text-fg md:hidden"
                 >
                   &times;
                 </button>
               </div>
-              <div className="py-1.5 md:py-1">
+              <div className="py-1.5">
                 {MENU_LINKS.map((link) => (
                   <span key={link.to} className={link.phoneOnly ? 'sm:hidden' : undefined}>
-                    <MenuLink to={link.to} onSelect={() => setOpen(false)}>
-                      {link.label}
-                    </MenuLink>
+                    <MenuLink to={link.to} icon={link.icon} label={link.label} onSelect={close} />
                   </span>
                 ))}
               </div>
-              <div className="mt-auto border-t border-rule py-1.5 md:mt-0 md:py-1">
+              <div className="mt-auto border-t border-rule py-1.5 md:mt-0">
                 <button
                   type="button"
                   role="menuitem"
                   onClick={() => {
-                    setOpen(false)
+                    close()
                     void logout()
                   }}
-                  className="block w-full px-4 py-3 text-left text-base font-medium text-destructive transition-colors hover:bg-sunken md:px-3 md:py-1.5 md:text-xs"
+                  className={`${MENU_ROW_CLASS} text-danger`}
                 >
+                  <LogoutIcon className={MENU_ICON_CLASS} />
                   Log out
                 </button>
               </div>
@@ -108,21 +113,19 @@ export function AccountMenu({ username, displayName, avatarUrl }: AccountMenuPro
 
 function MenuLink({
   to,
+  icon: Icon,
+  label,
   onSelect,
-  children,
 }: {
   to: string
+  icon: ComponentType<{ className?: string }>
+  label: string
   onSelect: () => void
-  children: string
 }) {
   return (
-    <Link
-      to={to}
-      role="menuitem"
-      onClick={onSelect}
-      className="block px-4 py-3 text-base text-fg no-underline transition-colors hover:bg-sunken md:px-3 md:py-1.5 md:text-xs"
-    >
-      {children}
+    <Link to={to} role="menuitem" onClick={onSelect} className={`${MENU_ROW_CLASS} text-fg`}>
+      <Icon className={`${MENU_ICON_CLASS} text-fg-2`} />
+      {label}
     </Link>
   )
 }

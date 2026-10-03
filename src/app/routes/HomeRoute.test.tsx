@@ -5,6 +5,7 @@ import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedOut } from '@/testing/authHandlers'
 import { CurrentLocation } from '@/testing/CurrentLocation'
+import { holdResponse } from '@/testing/holdResponse'
 import catalogCard from '@/testing/mocks/catalog-card.json'
 import recentReview from '@/testing/mocks/recent-review.json'
 import { server } from '@/testing/msw-server'
@@ -24,12 +25,10 @@ type RecentReviewsReply = () => Response
 function stubHome(recentReviews: RecentReviewsReply, { listsWaitForReviews = false } = {}) {
   const listRequests: string[] = []
   const recentLimits: (string | null)[] = []
-  let markReviewsAnswered: () => void = () => undefined
-  const reviewsAnswered = listsWaitForReviews
-    ? new Promise<void>((resolve) => {
-        markReviewsAnswered = resolve
-      })
-    : Promise.resolve()
+  const reviewsAnswered = holdResponse()
+  if (!listsWaitForReviews) {
+    reviewsAnswered.release()
+  }
   stubSignedOut()
   server.use(
     http.get(`${BASE}/books/count`, () => HttpResponse.json({ data: { total: 12_345 } })),
@@ -37,12 +36,12 @@ function stubHome(recentReviews: RecentReviewsReply, { listsWaitForReviews = fal
       const params = new URL(request.url).searchParams
       const list = params.get('list') ?? ''
       listRequests.push(`${list} ${params.get('limit')}`)
-      await reviewsAnswered
+      await reviewsAnswered.held
       return HttpResponse.json({ data: [LIST_CARDS[list]] })
     }),
     http.get(`${BASE}/reviews/recent`, ({ request }) => {
       recentLimits.push(new URL(request.url).searchParams.get('limit'))
-      markReviewsAnswered()
+      reviewsAnswered.release()
       return recentReviews()
     }),
   )
@@ -119,7 +118,7 @@ describe('HomeRoute', () => {
     renderWithProviders(<HomeRoute />)
 
     expect(await screen.findByRole('heading', { name: 'Recent reviews' })).toBeInTheDocument()
-    expect(screen.getByText('mustang')).toBeInTheDocument()
+    expect(screen.getByText('otheruser')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Golden Son' })).toHaveAttribute('href', '/books/OL27W')
     expect(recentLimits).toEqual(['6'])
   })

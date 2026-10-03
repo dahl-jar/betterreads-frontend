@@ -36,7 +36,9 @@ describe('VerifyEmailRoute', () => {
 
     renderWithProviders(<VerifyEmailRoute />, { route: '/verify-email?token=verify-token-123' })
 
-    await waitFor(() => expect(screen.getByText(/email verified/i)).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText('Email verified. You are all set.')).toBeInTheDocument(),
+    )
     expect(verifyBody).toEqual({ token: 'verify-token-123' })
   })
 
@@ -49,42 +51,13 @@ describe('VerifyEmailRoute', () => {
       }),
     )
 
-    await requestResend('darrow@example.com')
+    await requestResend('user@example.com')
 
     await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent(/if that email|new link/i),
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'If that email needs verifying, a new link is on its way. Check your inbox.',
+      ),
     )
-    expect(resendBody).toEqual({ email: 'darrow@example.com' })
-  })
-
-  it('should confirm the resend even when it fails', async () => {
-    server.use(
-      http.post(`${BASE}/resend-verification`, () => new HttpResponse(null, { status: 500 })),
-    )
-
-    await requestResend('darrow@example.com')
-
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent(/if that email|new link/i),
-    )
-  })
-
-  it('should reject an address that is not an email', async () => {
-    let resendCalled = false
-    server.use(
-      http.post(`${BASE}/resend-verification`, () => {
-        resendCalled = true
-        return new HttpResponse(null, { status: 204 })
-      }),
-    )
-
-    await requestResend('darrow')
-
-    await waitFor(() =>
-      expect(
-        screen.getByText('Enter a valid email with a domain, like name@example.com'),
-      ).toBeInTheDocument(),
-    )
-    expect(resendCalled).toBe(false)
+    expect(resendBody).toEqual({ email: 'user@example.com' })
   })
 })

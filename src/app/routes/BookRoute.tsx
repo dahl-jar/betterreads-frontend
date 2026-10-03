@@ -14,8 +14,8 @@ import { useCommunityRating } from '@/features/reviews/hooks/useCommunityRating'
 import { type ReadingStatus, type ShelfEntry } from '@/features/shelf/api/shelfSchemas'
 import { ShelfControl } from '@/features/shelf/components/ShelfControl'
 import { useShelfCounts } from '@/features/shelf/hooks/useShelfCounts'
-import { formatShelfDate } from '@/features/shelf/utils/formatShelfDate'
 import { READING_STATUS_LABELS } from '@/features/shelf/utils/readingStatusLabels'
+import { shelfDateOf } from '@/features/shelf/utils/shelfDateOf'
 
 import { BookActivity } from '../components/BookActivity'
 import { BookStats } from '../components/BookStats'
@@ -24,16 +24,11 @@ import { useDocumentTitle } from '../useDocumentTitle'
 
 import { NotFoundRoute } from './NotFoundRoute'
 
-type StatusStamp = {
-  tone: Stamp['tone']
-  dateOf: (entry: ShelfEntry) => string | null | undefined
-}
-
-const STATUS_STAMPS: Record<ReadingStatus, StatusStamp> = {
-  WANT_TO_READ: { tone: 'brand', dateOf: (entry) => entry.addedAt },
-  CURRENTLY_READING: { tone: 'brand', dateOf: (entry) => entry.startedAt },
-  FINISHED: { tone: 'read', dateOf: (entry) => entry.finishedAt },
-  DROPPED: { tone: 'dropped', dateOf: (entry) => entry.addedAt },
+const STATUS_TONES: Record<ReadingStatus, Stamp['tone']> = {
+  WANT_TO_READ: 'brand',
+  CURRENTLY_READING: 'brand',
+  FINISHED: 'read',
+  DROPPED: 'dropped',
 }
 
 type ShelfReport = {
@@ -42,11 +37,10 @@ type ShelfReport = {
 }
 
 function stampOf(entry: ShelfEntry, pressed: boolean): Stamp {
-  const { tone, dateOf } = STATUS_STAMPS[entry.status]
   return {
     label: READING_STATUS_LABELS[entry.status],
-    date: formatShelfDate(dateOf(entry)),
-    tone,
+    date: shelfDateOf(entry),
+    tone: STATUS_TONES[entry.status],
     pressed,
   }
 }

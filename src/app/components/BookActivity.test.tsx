@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
-import { stubSignedOut as stubAnonymousSession } from '@/testing/authHandlers'
+import { stubSignedOut } from '@/testing/authHandlers'
+import { emptyPage } from '@/testing/emptyPage'
 import review from '@/testing/mocks/review.json'
 import { server } from '@/testing/msw-server'
 import { renderWithProviders, screen } from '@/testing/test-utils'
@@ -12,15 +13,11 @@ import { BookActivity } from './BookActivity'
 
 const BASE = 'http://localhost:8080/api/v1'
 
-function stubSignedOut() {
-  stubAnonymousSession()
+function stubEmptyActivity() {
+  stubSignedOut()
   server.use(
-    http.get(`${BASE}/books/OL1W/reviews`, () =>
-      HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
-    ),
-    http.get(`${BASE}/books/OL1W/comments`, () =>
-      HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
-    ),
+    http.get(`${BASE}/books/OL1W/reviews`, emptyPage),
+    http.get(`${BASE}/books/OL1W/comments`, emptyPage),
   )
 }
 
@@ -31,7 +28,7 @@ afterEach(() => {
 
 describe('BookActivity', () => {
   it('should show reviews first', async () => {
-    stubSignedOut()
+    stubEmptyActivity()
 
     renderWithProviders(<BookActivity bookKey="OL1W" />)
 
@@ -40,7 +37,7 @@ describe('BookActivity', () => {
   })
 
   it('should show the discussion tab', async () => {
-    stubSignedOut()
+    stubEmptyActivity()
     const { user } = renderWithProviders(<BookActivity bookKey="OL1W" />)
 
     await user.click(await screen.findByRole('tab', { name: 'Discussions' }))
@@ -50,7 +47,7 @@ describe('BookActivity', () => {
   })
 
   it("should label a review's comment toggle with its comment count", async () => {
-    stubSignedOut()
+    stubEmptyActivity()
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({

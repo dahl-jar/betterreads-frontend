@@ -5,7 +5,7 @@ import { initialOf } from './initialOf'
 describe('initialOf', () => {
   it.each([
     { text: 'dune', initial: 'D' },
-    { text: '  mustang', initial: 'M' },
+    { text: '  otheruser', initial: 'O' },
     { text: '[deleted]', initial: 'D' },
     { text: '1984', initial: '1' },
     { text: '', initial: '?' },

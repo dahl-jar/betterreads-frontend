@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { useAuth } from '@/hooks/useAuth'
 import { apiGet, setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken, getAccessToken } from '@/lib/api/token'
+import { holdResponse } from '@/testing/holdResponse'
 import auth from '@/testing/mocks/auth.json'
 import { server } from '@/testing/msw-server'
 
@@ -15,8 +16,7 @@ const BASE = 'http://localhost:8080/api/v1/auth'
 
 function Probe() {
   const { user, status, login, logout } = useAuth()
-  const signIn = () =>
-    void login({ identifier: 'darrow', password: 'secret-12', rememberMe: false })
+  const signIn = () => void login({ identifier: 'user', password: 'secret-12', rememberMe: false })
   const signOut = () => void logout().catch(() => undefined)
   const loadProtected = () =>
     void Promise.allSettled([apiGet('/api/v1/auth/me'), apiGet('/api/v1/auth/me')])
@@ -47,7 +47,7 @@ async function renderSignedIn(logoutStatus: number) {
     http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: logoutStatus })),
   )
   renderWithAuth()
-  await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('darrow'))
+  await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('user'))
 }
 
 afterEach(() => {
@@ -65,7 +65,7 @@ describe('AuthProvider', () => {
 
     renderWithAuth()
 
-    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('darrow'))
+    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('user'))
     expect(getAccessToken()).toBe('jwt-1')
   })
 
@@ -90,7 +90,7 @@ describe('AuthProvider', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'sign in' }))
 
-    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('darrow'))
+    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('user'))
     expect(getAccessToken()).toBe('jwt-2')
   })
 
@@ -115,29 +115,26 @@ describe('AuthProvider', () => {
   it('should clear the session when a shared refresh fails', async () => {
     let refreshRequests = 0
     let protectedRequests = 0
-    let markProtectedRequestsComplete: () => void = () => undefined
-    const protectedRequestsComplete = new Promise<void>((resolve) => {
-      markProtectedRequestsComplete = resolve
-    })
+    const protectedRequestsComplete = holdResponse()
     server.use(
       http.post(`${BASE}/refresh`, async () => {
         refreshRequests += 1
         if (refreshRequests === 1) {
           return HttpResponse.json({ data: { ...auth, accessToken: 'jwt-4' } })
         }
-        await protectedRequestsComplete
+        await protectedRequestsComplete.held
         return new HttpResponse(null, { status: 401 })
       }),
       http.get(`${BASE}/me`, () => {
         protectedRequests += 1
         if (protectedRequests === 2) {
-          markProtectedRequestsComplete()
+          protectedRequestsComplete.release()
         }
         return new HttpResponse(null, { status: 401 })
       }),
     )
     renderWithAuth()
-    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('darrow'))
+    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('user'))
 
     await userEvent.click(screen.getByRole('button', { name: 'load protected' }))
 

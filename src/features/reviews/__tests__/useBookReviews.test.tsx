@@ -8,14 +8,22 @@ import { AuthProvider } from '@/app/components/AuthProvider'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedIn, stubSignedOut } from '@/testing/authHandlers'
+import { holdResponse } from '@/testing/holdResponse'
 import auth from '@/testing/mocks/auth.json'
 import review from '@/testing/mocks/review.json'
 import { server } from '@/testing/msw-server'
 
+import { type Review } from '../api/reviewSchemas'
 import { useBookReviews } from '../hooks/useBookReviews'
 
 const BASE = 'http://localhost:8080/api/v1'
 const AUTH_BASE = `${BASE}/auth`
+const BOOK_REVIEWS_URL = `${BASE}/books/OL1W/reviews`
+const OWN_REVIEWS_URL = `${BASE}/me/reviews`
+const OWN_REVIEW_URL = `${BASE}/books/OL1W/reviews/me`
+const BOOK_PAGE_LIMIT = 20
+const OWN_PAGE_LIMIT = 100
+const OTHER_REVIEW = { ...review, id: 2, rating: 3 }
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
@@ -23,6 +31,30 @@ function wrapper({ children }: { children: ReactNode }) {
       <AuthProvider>{children}</AuthProvider>
     </MemoryRouter>
   )
+}
+
+function reviewPage(reviews: Review[], limit = BOOK_PAGE_LIMIT) {
+  return HttpResponse.json({ data: reviews, meta: { total: reviews.length, offset: 0, limit } })
+}
+
+function stubBookReviews(reviews: Review[]) {
+  server.use(http.get(BOOK_REVIEWS_URL, () => reviewPage(reviews)))
+}
+
+function stubOwnReviews(reviews: Review[]) {
+  server.use(http.get(OWN_REVIEWS_URL, () => reviewPage(reviews, OWN_PAGE_LIMIT)))
+}
+
+async function loadReviews() {
+  const { result } = renderHook(() => useBookReviews('OL1W'), { wrapper })
+  await waitFor(() => expect(result.current.status).toBe('success'))
+  return result
+}
+
+function stubReaderWithoutReviews() {
+  stubSignedIn()
+  stubBookReviews([])
+  stubOwnReviews([])
 }
 
 afterEach(() => {
@@ -33,35 +65,18 @@ afterEach(() => {
 describe('useBookReviews', () => {
   it('should load reviews for an anonymous reader', async () => {
     stubSignedOut()
-    server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({
-          data: [review, { ...review, id: 2, rating: 3 }],
-          meta: { total: 2, offset: 0, limit: 20 },
-        }),
-      ),
-    )
+    stubBookReviews([review, OTHER_REVIEW])
 
-    const { result } = renderHook(() => useBookReviews('OL1W'), { wrapper })
+    const result = await loadReviews()
 
-    await waitFor(() => expect(result.current.status).toBe('success'))
     expect(result.current.reviews).toHaveLength(2)
     expect(result.current.myReview).toBeUndefined()
   })
 
   it("should separate the signed-in reader's own review from the rest", async () => {
     stubSignedIn()
-    server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({
-          data: [review, { ...review, id: 2, rating: 3 }],
-          meta: { total: 2, offset: 0, limit: 20 },
-        }),
-      ),
-      http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 100 } }),
-      ),
-    )
+    stubBookReviews([review, OTHER_REVIEW])
+    stubOwnReviews([review])
 
     const { result } = renderHook(() => useBookReviews('OL1W'), { wrapper })
 
@@ -71,28 +86,16 @@ describe('useBookReviews', () => {
 
   it('should clear the previous book reviews while a new book loads', async () => {
     stubSignedOut()
-    let markNextReviewsStarted: () => void = () => undefined
-    let releaseNextReviews: () => void = () => undefined
-    const nextReviewsStarted = new Promise<void>((resolve) => {
-      markNextReviewsStarted = resolve
-    })
-    const heldNextReviews = new Promise<void>((resolve) => {
-      releaseNextReviews = resolve
-    })
+    const nextReviewsStarted = holdResponse()
+    const nextReviews = holdResponse()
     server.use(
       http.get(`${BASE}/books/:key/reviews`, async ({ params }) => {
         if (params.key === 'OL1W') {
-          return HttpResponse.json({
-            data: [review],
-            meta: { total: 1, offset: 0, limit: 20 },
-          })
+          return reviewPage([review])
         }
-        markNextReviewsStarted()
-        await heldNextReviews
-        return HttpResponse.json({
-          data: [{ ...review, id: 2, bookKey: 'OL2W', title: 'The next book' }],
-          meta: { total: 1, offset: 0, limit: 20 },
-        })
+        nextReviewsStarted.release()
+        await nextReviews.held
+        return reviewPage([{ ...review, id: 2, bookKey: 'OL2W', title: 'The next book' }])
       }),
     )
     const { rerender, result } = renderHook(
@@ -102,20 +105,18 @@ describe('useBookReviews', () => {
     await waitFor(() => expect(result.current.reviews[0]?.bookKey).toBe('OL1W'))
 
     rerender({ bookKey: 'OL2W' })
-    await nextReviewsStarted
+    await nextReviewsStarted.held
 
     expect(result.current.status).toBe('loading')
     expect(result.current.reviews).toEqual([])
 
-    releaseNextReviews()
+    nextReviews.release()
     await waitFor(() => expect(result.current.reviews[0]?.bookKey).toBe('OL2W'))
   })
 
   it('should report an error when the book reviews cannot be loaded', async () => {
     stubSignedOut()
-    server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () => new HttpResponse(null, { status: 503 })),
-    )
+    server.use(http.get(BOOK_REVIEWS_URL, () => new HttpResponse(null, { status: 503 })))
 
     const { result } = renderHook(() => useBookReviews('OL1W'), { wrapper })
 
@@ -123,27 +124,19 @@ describe('useBookReviews', () => {
   })
 
   it('should keep reviews visible during a sign-in refetch', async () => {
-    let releaseSession: () => void = () => undefined
     let ownLookupStarted = false
-    let releaseOwnLookup: () => void = () => undefined
-    const heldSession = new Promise<void>((resolve) => {
-      releaseSession = resolve
-    })
-    const heldOwnLookup = new Promise<void>((resolve) => {
-      releaseOwnLookup = resolve
-    })
+    const session = holdResponse()
+    const ownLookup = holdResponse()
+    stubBookReviews([review])
     server.use(
       http.post(`${AUTH_BASE}/refresh`, async () => {
-        await heldSession
+        await session.held
         return HttpResponse.json({ data: { ...auth, accessToken: 'jwt' } })
       }),
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
-      ),
-      http.get(`${BASE}/me/reviews`, async () => {
+      http.get(OWN_REVIEWS_URL, async () => {
         ownLookupStarted = true
-        await heldOwnLookup
-        return HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 100 } })
+        await ownLookup.held
+        return reviewPage([], OWN_PAGE_LIMIT)
       }),
     )
 
@@ -159,32 +152,24 @@ describe('useBookReviews', () => {
     await waitFor(() => expect(result.current.reviews).toHaveLength(1))
     expect(result.current.status).toBe('success')
 
-    releaseSession()
+    session.release()
     await waitFor(() => expect(ownLookupStarted).toBe(true))
 
     const firstSuccess = statuses.indexOf('success')
     expect(firstSuccess).toBeGreaterThanOrEqual(0)
     expect(statuses.slice(firstSuccess)).not.toContain('loading')
 
-    releaseOwnLookup()
+    ownLookup.release()
     await waitFor(() => expect(result.current.myReviewReady).toBe(true))
   })
 
   it('should keep reviews read-only after ownership lookup fails', async () => {
     stubSignedIn()
-    server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({
-          data: [review, { ...review, id: 2, rating: 3 }],
-          meta: { total: 2, offset: 0, limit: 20 },
-        }),
-      ),
-      http.get(`${BASE}/me/reviews`, () => new HttpResponse(null, { status: 503 })),
-    )
+    stubBookReviews([review, OTHER_REVIEW])
+    server.use(http.get(OWN_REVIEWS_URL, () => new HttpResponse(null, { status: 503 })))
 
-    const { result } = renderHook(() => useBookReviews('OL1W'), { wrapper })
+    const result = await loadReviews()
 
-    await waitFor(() => expect(result.current.status).toBe('success'))
     expect(result.current.reviews).toHaveLength(2)
     expect(result.current.myReview).toBeUndefined()
     expect(result.current.myReviewReady).toBe(false)
@@ -193,21 +178,13 @@ describe('useBookReviews', () => {
   it('should mark ownership pending during lookup', async () => {
     stubSignedIn()
     let ownLookupStarted = false
-    let releaseOwnLookup: () => void = () => undefined
-    const heldOwnLookup = new Promise<void>((resolve) => {
-      releaseOwnLookup = resolve
-    })
+    const ownLookup = holdResponse()
+    stubBookReviews([review])
     server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
-      ),
-      http.get(`${BASE}/me/reviews`, async () => {
+      http.get(OWN_REVIEWS_URL, async () => {
         ownLookupStarted = true
-        await heldOwnLookup
-        return HttpResponse.json({
-          data: [{ ...review, id: 9, bookKey: 'OL1W' }],
-          meta: { total: 1, offset: 0, limit: 100 },
-        })
+        await ownLookup.held
+        return reviewPage([{ ...review, id: 9, bookKey: 'OL1W' }], OWN_PAGE_LIMIT)
       }),
     )
 
@@ -216,39 +193,25 @@ describe('useBookReviews', () => {
     await waitFor(() => expect(ownLookupStarted).toBe(true))
     expect(result.current.myReviewReady).toBe(false)
 
-    releaseOwnLookup()
+    ownLookup.release()
     await waitFor(() => expect(result.current.myReviewReady).toBe(true))
     expect(result.current.myReview?.id).toBe(9)
   })
 
   it('should mark ownership ready when anonymous', async () => {
     stubSignedOut()
-    server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [review], meta: { total: 1, offset: 0, limit: 20 } }),
-      ),
-    )
+    stubBookReviews([review])
 
-    const { result } = renderHook(() => useBookReviews('OL1W'), { wrapper })
+    const result = await loadReviews()
 
-    await waitFor(() => expect(result.current.status).toBe('success'))
     expect(result.current.myReviewReady).toBe(true)
   })
 
   it("should save a review as the reader's review", async () => {
-    stubSignedIn()
+    stubReaderWithoutReviews()
     server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
-      ),
-      http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 100 } }),
-      ),
-      http.put(`${BASE}/books/OL1W/reviews/me`, () =>
-        HttpResponse.json({ data: { ...review, id: 9, rating: 4 } }),
-      ),
+      http.put(OWN_REVIEW_URL, () => HttpResponse.json({ data: { ...review, id: 9, rating: 4 } })),
     )
-
     const { result } = renderHook(() => useBookReviews('OL1W'), { wrapper })
     await waitFor(() => expect(result.current.status).toBe('success'))
 
@@ -258,20 +221,11 @@ describe('useBookReviews', () => {
   })
 
   it('should notify after a save', async () => {
-    stubSignedIn()
-    const onReviewChange = vi.fn()
+    stubReaderWithoutReviews()
     server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
-      ),
-      http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 100 } }),
-      ),
-      http.put(`${BASE}/books/OL1W/reviews/me`, () =>
-        HttpResponse.json({ data: { ...review, id: 9, rating: 4 } }),
-      ),
+      http.put(OWN_REVIEW_URL, () => HttpResponse.json({ data: { ...review, id: 9, rating: 4 } })),
     )
-
+    const onReviewChange = vi.fn()
     const { result } = renderHook(() => useBookReviews('OL1W', onReviewChange), { wrapper })
     await waitFor(() => expect(result.current.status).toBe('success'))
 
@@ -282,18 +236,9 @@ describe('useBookReviews', () => {
 
   it('should clear the own review after a delete', async () => {
     stubSignedIn()
-    server.use(
-      http.get(`${BASE}/books/OL1W/reviews`, () =>
-        HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 20 } }),
-      ),
-      http.get(`${BASE}/me/reviews`, () =>
-        HttpResponse.json({
-          data: [{ ...review, id: 9 }],
-          meta: { total: 1, offset: 0, limit: 100 },
-        }),
-      ),
-      http.delete(`${BASE}/books/OL1W/reviews/me`, () => new HttpResponse(null, { status: 204 })),
-    )
+    stubBookReviews([])
+    stubOwnReviews([{ ...review, id: 9 }])
+    server.use(http.delete(OWN_REVIEW_URL, () => new HttpResponse(null, { status: 204 })))
 
     const { result } = renderHook(() => useBookReviews('OL1W'), { wrapper })
     await waitFor(() => expect(result.current.myReview?.id).toBe(9))

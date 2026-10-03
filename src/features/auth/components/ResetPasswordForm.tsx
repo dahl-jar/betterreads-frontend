@@ -7,14 +7,15 @@ import { Button } from '@/components/ui/button'
 import { resetPassword } from '../api/resetPassword'
 
 import { AuthForm } from './AuthForm'
+import { confirmationMatches, passwordSchema } from './passwordSchema'
 import { TextField } from './TextField'
 
-const resetPasswordFormSchema = z.object({
-  newPassword: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(72, 'Password must be at most 72 characters'),
-})
+const resetPasswordFormSchema = z
+  .object({
+    newPassword: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine(...confirmationMatches('newPassword'))
 
 type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>
 
@@ -26,7 +27,7 @@ type ResetPasswordFormProps = {
 export function ResetPasswordForm({ token, onSuccess }: ResetPasswordFormProps) {
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordFormSchema),
-    defaultValues: { newPassword: '' },
+    defaultValues: { newPassword: '', confirmPassword: '' },
   })
 
   const onSubmit = async (values: ResetPasswordFormValues) => {
@@ -43,6 +44,12 @@ export function ResetPasswordForm({ token, onSuccess }: ResetPasswordFormProps) 
       <TextField<ResetPasswordFormValues>
         name="newPassword"
         label="New password"
+        type="password"
+        autoComplete="new-password"
+      />
+      <TextField<ResetPasswordFormValues>
+        name="confirmPassword"
+        label="Confirm password"
         type="password"
         autoComplete="new-password"
       />

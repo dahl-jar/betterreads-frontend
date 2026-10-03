@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { FakeEventSource } from '@/testing/fakeEventSource'
+import { holdResponse } from '@/testing/holdResponse'
 import searchHit from '@/testing/mocks/search-hit.json'
 import { server } from '@/testing/msw-server'
 
@@ -41,6 +42,13 @@ function pageOf(available: number) {
   })
 }
 
+async function searchWithoutHits() {
+  server.use(pageOf(0))
+  const { result } = renderHook(() => useSearch('an obscure title'))
+  await waitFor(() => expect(result.current.status).toBe('staging'))
+  return result
+}
+
 describe('useSearch', () => {
   it('should stay idle for an empty query', async () => {
     let requested = false
@@ -67,7 +75,7 @@ describe('useSearch', () => {
     expect(result.current.page).toBe(1)
   })
 
-  it('should flag overflow beyond the page size', async () => {
+  it('should offer a next page when more hits remain', async () => {
     server.use(pageOf(40))
 
     const { result } = renderHook(() => useSearch('dune'))
@@ -103,12 +111,9 @@ describe('useSearch', () => {
     expect(result.current.page).toBe(2)
   })
 
-  it('should report a staging status when a query returns zero hits', async () => {
-    server.use(pageOf(0))
+  it('should say the book is being looked for when a search finds nothing', async () => {
+    const result = await searchWithoutHits()
 
-    const { result } = renderHook(() => useSearch('an obscure title'))
-
-    await waitFor(() => expect(result.current.status).toBe('staging'))
     expect(result.current.hits).toEqual([])
   })
 
@@ -121,22 +126,16 @@ describe('useSearch', () => {
   })
 
   it('should clear previous results when the query changes', async () => {
-    let markNextSearchStarted: () => void = () => undefined
-    let releaseNextSearch: () => void = () => undefined
-    const nextSearchStarted = new Promise<void>((resolve) => {
-      markNextSearchStarted = resolve
-    })
-    const heldNextSearch = new Promise<void>((resolve) => {
-      releaseNextSearch = resolve
-    })
+    const nextSearchStarted = holdResponse()
+    const heldNextSearch = holdResponse()
     server.use(
       http.get(SEARCH_URL, async ({ request }) => {
         const query = new URL(request.url).searchParams.get('q')
         if (query === 'dune') {
           return pagedResponse(makeHits(1), 1, 0, PAGE_SIZE + 1)
         }
-        markNextSearchStarted()
-        await heldNextSearch
+        nextSearchStarted.release()
+        await heldNextSearch.held
         return pagedResponse(makeHits(1, 1), 1, 0, PAGE_SIZE + 1)
       }),
     )
@@ -146,12 +145,12 @@ describe('useSearch', () => {
     await waitFor(() => expect(result.current.status).toBe('success'))
 
     rerender({ query: 'mistborn' })
-    await nextSearchStarted
+    await nextSearchStarted.held
 
     expect(result.current.status).toBe('loading')
     expect(result.current.hits).toEqual([])
 
-    releaseNextSearch()
+    heldNextSearch.release()
     await waitFor(() => expect(result.current.status).toBe('success'))
   })
 
@@ -160,10 +159,8 @@ describe('useSearch', () => {
       vi.stubGlobal('EventSource', FakeEventSource)
     })
 
-    it('should append streamed hits and turn staging into success', async () => {
-      server.use(pageOf(0))
-      const { result } = renderHook(() => useSearch('an obscure title'))
-      await waitFor(() => expect(result.current.status).toBe('staging'))
+    it('should show streamed hits when the search had none', async () => {
+      const result = await searchWithoutHits()
 
       FakeEventSource.instances[0]!.emit('search-hit', searchHit)
       FakeEventSource.instances[0]!.emit('search-hit', { ...searchHit, bookId: 'second' })
