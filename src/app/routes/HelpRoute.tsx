@@ -29,7 +29,7 @@ const QUESTIONS: Question[] = [
   {
     question: 'Who can see my books and reviews?',
     answer:
-      'Your shelves and dates are private. Your ratings, reviews, and comments are public and show your username.',
+      'Your shelves are private. Your ratings, reviews, and comments are public and show your username. A review also shows when you read the book.',
   },
   {
     question: 'I forgot my password',

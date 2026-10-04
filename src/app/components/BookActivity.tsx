@@ -2,6 +2,9 @@ import { lazy, Suspense, useState } from 'react'
 
 import { TabList } from '@/components/TabList'
 import { BookReviews } from '@/features/reviews/components/BookReviews'
+import { type ReviewWindowBook } from '@/features/reviews/components/reviewWindowItem'
+
+import { ReviewThread } from './ReviewThread'
 
 const BookComments = lazy(() =>
   import('@/features/comments/components/BookComments').then((module) => ({
@@ -9,14 +12,8 @@ const BookComments = lazy(() =>
   })),
 )
 
-const ReviewComments = lazy(() =>
-  import('@/features/comments/components/ReviewComments').then((module) => ({
-    default: module.ReviewComments,
-  })),
-)
-
 type BookActivityProps = {
-  bookKey: string
+  book: ReviewWindowBook
   onReviewChange?: () => void
   onTotalChange?: (total: number) => void
 }
@@ -28,7 +25,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'comments', label: 'Discussions' },
 ]
 
-export function BookActivity({ bookKey, onReviewChange, onTotalChange }: BookActivityProps) {
+export function BookActivity({ book, onReviewChange, onTotalChange }: BookActivityProps) {
   const [tab, setTab] = useState<Tab>('reviews')
 
   return (
@@ -42,18 +39,14 @@ export function BookActivity({ bookKey, onReviewChange, onTotalChange }: BookAct
 
       {tab === 'reviews' ? (
         <BookReviews
-          bookKey={bookKey}
+          book={book}
           onReviewChange={onReviewChange}
           onTotalChange={onTotalChange}
-          renderComments={(reviewId, commentCount) => (
-            <Suspense fallback={null}>
-              <ReviewComments reviewId={reviewId} commentCount={commentCount} />
-            </Suspense>
-          )}
+          renderComments={(reviewId) => <ReviewThread reviewId={reviewId} />}
         />
       ) : (
         <Suspense fallback={null}>
-          <BookComments bookKey={bookKey} />
+          <BookComments bookKey={book.key} />
         </Suspense>
       )}
     </div>

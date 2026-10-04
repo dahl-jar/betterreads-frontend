@@ -6,8 +6,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { useAuth } from '@/hooks/useAuth'
 import { apiGet, setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken, getAccessToken } from '@/lib/api/token'
+import { clearDrafts, readDraft, writeDraft } from '@/lib/draftStore'
 import { holdResponse } from '@/testing/holdResponse'
 import auth from '@/testing/mocks/auth.json'
+import draft from '@/testing/mocks/draft.json'
 import { server } from '@/testing/msw-server'
 
 import { AuthProvider } from './AuthProvider'
@@ -15,9 +17,10 @@ import { AuthProvider } from './AuthProvider'
 const BASE = 'http://localhost:8080/api/v1/auth'
 
 function Probe() {
-  const { user, status, login, logout } = useAuth()
+  const { user, status, login, logout, deleteAccount } = useAuth()
   const signIn = () => void login({ identifier: 'user', password: 'secret-12', rememberMe: false })
   const signOut = () => void logout().catch(() => undefined)
+  const removeAccount = () => void deleteAccount().catch(() => undefined)
   const loadProtected = () =>
     void Promise.allSettled([apiGet('/api/v1/auth/me'), apiGet('/api/v1/auth/me')])
   return (
@@ -26,6 +29,7 @@ function Probe() {
       <span data-testid="user">{user?.username ?? 'none'}</span>
       <button onClick={signIn}>sign in</button>
       <button onClick={signOut}>sign out</button>
+      <button onClick={removeAccount}>delete account</button>
       <button onClick={loadProtected}>load protected</button>
     </div>
   )
@@ -53,6 +57,7 @@ async function renderSignedIn(logoutStatus: number) {
 afterEach(() => {
   clearAccessToken()
   setRefreshHandler(undefined)
+  clearDrafts()
 })
 
 describe('AuthProvider', () => {
@@ -101,6 +106,48 @@ describe('AuthProvider', () => {
 
     await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('none'))
     expect(getAccessToken()).toBeUndefined()
+  })
+
+  it.each([
+    { outcome: 'succeeds', logoutStatus: 204 },
+    { outcome: 'fails', logoutStatus: 500 },
+  ])('should forget unposted drafts when logout $outcome', async ({ logoutStatus }) => {
+    await renderSignedIn(logoutStatus)
+    writeDraft('user', 'review-comment:7', draft)
+
+    await userEvent.click(screen.getByRole('button', { name: 'sign out' }))
+
+    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('none'))
+    expect(readDraft('user', 'review-comment:7')).toBeUndefined()
+  })
+
+  it('should forget unposted drafts after the account is deleted', async () => {
+    await renderSignedIn(204)
+    server.use(http.delete(`${BASE}/me`, () => new HttpResponse(null, { status: 204 })))
+    writeDraft('user', 'review-comment:7', draft)
+
+    await userEvent.click(screen.getByRole('button', { name: 'delete account' }))
+
+    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('none'))
+    expect(readDraft('user', 'review-comment:7')).toBeUndefined()
+  })
+
+  it('should keep unposted drafts when deleting the account fails', async () => {
+    let deleteRequests = 0
+    await renderSignedIn(204)
+    server.use(
+      http.delete(`${BASE}/me`, () => {
+        deleteRequests += 1
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    writeDraft('user', 'review-comment:7', draft)
+
+    await userEvent.click(screen.getByRole('button', { name: 'delete account' }))
+
+    await waitFor(() => expect(deleteRequests).toBe(1))
+    expect(screen.getByTestId('user')).toHaveTextContent('user')
+    expect(readDraft('user', 'review-comment:7')).toEqual(draft)
   })
 
   it('should clear the session when logout fails', async () => {

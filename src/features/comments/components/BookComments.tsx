@@ -1,3 +1,5 @@
+import { bookCommentDraftKey } from '@/lib/draftKeys'
+
 import { postBookComment } from '../api/postBookComment'
 import { useBookComments } from '../hooks/useBookComments'
 
@@ -17,7 +19,7 @@ export function BookComments({ bookKey }: BookCommentsProps) {
       <p className="mt-1 text-sm text-fg-2">Talk about this book with other readers.</p>
       <CommentThreadView
         thread={thread}
-        alwaysOpen
+        draftKey={bookCommentDraftKey(bookKey)}
         postReply={(parentCommentId, body) =>
           postBookComment(bookKey, { body, parentCommentId }).then(() => undefined)
         }

@@ -8,6 +8,7 @@ import { type AuthResponse } from '@/features/auth/api/schemas'
 import { AuthContext, type AuthStatus } from '@/hooks/useAuth'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken, setAccessToken } from '@/lib/api/token'
+import { clearDrafts } from '@/lib/draftStore'
 import { type CurrentUser, type LoginInput } from '@/types/auth'
 
 /** Keeps the access token in memory and restores the session from the refresh cookie. */
@@ -68,12 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await logoutRequest()
     } finally {
+      clearDrafts()
       clearSession()
     }
   }, [clearSession])
 
   const deleteAccount = useCallback(async () => {
     await deleteAccountRequest()
+    clearDrafts()
     clearSession()
   }, [clearSession])
 

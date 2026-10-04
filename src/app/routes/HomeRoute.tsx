@@ -8,6 +8,7 @@ import { useBookList } from '@/features/catalog/hooks/useBookList'
 import { RecentReviews } from '@/features/reviews/components/RecentReviews'
 import { SearchForm } from '@/features/search/components/SearchForm'
 
+import { ReviewThread } from '../components/ReviewThread'
 import { searchPath } from '../searchPath'
 
 function rankLabel(_card: BookCard, index: number): string {
@@ -51,7 +52,7 @@ export function HomeRoute() {
         state={recentlyAdded}
         labelOf={yearLabel}
       />
-      <RecentReviews />
+      <RecentReviews renderComments={(reviewId) => <ReviewThread reviewId={reviewId} />} />
     </main>
   )
 }

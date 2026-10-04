@@ -1,11 +1,18 @@
 import { type ReactNode, useEffect, useState } from 'react'
 
 import { Avatar } from '@/components/Avatar'
+import { DraftStatus } from '@/components/DraftStatus'
+import { CommentIcon } from '@/components/icons'
 import { LoginLink } from '@/components/LoginLink'
 import { Markdown } from '@/components/Markdown'
 import { StarRating } from '@/components/StarRating'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
+import { useDraft } from '@/hooks/useDraft'
+import { useDraftGuard } from '@/hooks/useDraftGuard'
+import { commentCountLabel } from '@/lib/commentCountLabel'
+import { reviewDraftKey } from '@/lib/draftKeys'
+import { type Draft, hasDraftText } from '@/lib/draftStore'
 import { formatDate } from '@/lib/formatDate'
 import { type CurrentUser } from '@/types/auth'
 
@@ -13,29 +20,37 @@ import { type Review, type UpsertReviewInput } from '../api/reviewSchemas'
 import { useBookReviews } from '../hooks/useBookReviews'
 
 import { ReviewEditor } from './ReviewEditor'
+import { ReviewWindow } from './ReviewWindow'
+import {
+  type OpenReview,
+  type RenderComments,
+  type ReviewSection,
+  type ReviewWindowBook,
+} from './reviewWindowItem'
 
 const REVIEW_CLAMP_CHARS = 420
 
-const BODY_CLAMP_CLASS = 'max-h-[8.5em] overflow-hidden'
-
-type RenderComments = (reviewId: number, commentCount: number) => ReactNode
+type OpenedReview = {
+  id: number
+  section: ReviewSection | undefined
+}
 
 type BookReviewsProps = {
-  bookKey: string
+  book: ReviewWindowBook
   onReviewChange?: (() => void) | undefined
   onTotalChange?: ((total: number) => void) | undefined
   renderComments?: RenderComments | undefined
 }
 
 export function BookReviews({
-  bookKey,
+  book,
   onReviewChange,
   onTotalChange,
   renderComments,
 }: BookReviewsProps) {
   const { status: authStatus, user } = useAuth()
   const { status, total, myReview, myReviewReady, reviews, save, remove } = useBookReviews(
-    bookKey,
+    book.key,
     onReviewChange,
   )
   const signedIn = authStatus === 'authenticated'
@@ -65,6 +80,7 @@ export function BookReviews({
         ) : null}
         {status === 'success' ? (
           <ReviewList
+            book={book}
             reviews={reviews}
             myReview={myReview}
             ready={myReviewReady}
@@ -82,6 +98,7 @@ export function BookReviews({
 type ReviewAction = 'save' | 'remove'
 
 type ReviewListProps = {
+  book: ReviewWindowBook
   reviews: Review[]
   myReview: Review | undefined
   ready: boolean
@@ -92,6 +109,7 @@ type ReviewListProps = {
 }
 
 function ReviewList({
+  book,
   reviews,
   myReview,
   ready,
@@ -103,10 +121,24 @@ function ReviewList({
   const [editing, setEditing] = useState(false)
   const [pending, setPending] = useState(false)
   const [failedAction, setFailedAction] = useState<ReviewAction | undefined>(undefined)
+  const [opened, setOpened] = useState<OpenedReview | undefined>(undefined)
+  const draftKey = reviewDraftKey(book.key)
+  const { draft, update, discard } = useDraft(draftKey)
+  const { confirmLeave } = useDraftGuard()
 
   const rating = myReview?.rating ?? 0
   const busy = pending || !ready
   const ownListed = myReview !== undefined && !editing
+  const listed = ownListed ? [myReview, ...reviews] : reviews
+  const unfinished = reader !== undefined && !editing && hasDraftText(draft)
+  const openReview: OpenReview = (id, section) => setOpened({ id, section })
+
+  async function cancelEditing() {
+    if ((await confirmLeave([draftKey])) !== 'cancel') {
+      setFailedAction(undefined)
+      setEditing(false)
+    }
+  }
 
   async function run(action: ReviewAction, request: () => Promise<void>): Promise<boolean> {
     setPending(true)
@@ -133,6 +165,8 @@ function ReviewList({
           <ReaderHeading reader={reader} caption="Your review" />
           <ReviewEditor
             review={myReview}
+            draft={draft}
+            onTextChange={update}
             rating={rating}
             pending={busy}
             onRate={(stars) => void rate(stars)}
@@ -140,12 +174,13 @@ function ReviewList({
               void run('save', () => onSave(createReviewInput(rating, title, body))).then(
                 (saved) => {
                   if (saved) {
+                    discard()
                     setEditing(false)
                   }
                 },
               )
             }}
-            onCancel={() => setEditing(false)}
+            onCancel={() => void cancelEditing()}
           />
         </div>
       ) : null}
@@ -166,20 +201,40 @@ function ReviewList({
               disabled={busy}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            disabled={busy}
-            className="mt-3 text-sm font-semibold text-brand hover-mark disabled:opacity-50"
-          >
-            Write a review
-          </button>
+          {unfinished ? (
+            <UnfinishedReview
+              draft={draft}
+              disabled={busy}
+              onContinue={() => setEditing(true)}
+              onDiscard={discard}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              disabled={busy}
+              className="mt-3 text-sm font-semibold text-brand hover-mark disabled:opacity-50"
+            >
+              Write a review
+            </button>
+          )}
         </div>
+      ) : null}
+
+      {unfinished && myReview !== undefined ? (
+        <UnfinishedReview
+          draft={draft}
+          disabled={busy}
+          onContinue={() => setEditing(true)}
+          onDiscard={discard}
+        />
       ) : null}
 
       {failedAction ? (
         <p role="alert" className="text-sm text-destructive">
-          Could not {failedAction} your review. Try again.
+          {failedAction === 'save' && hasDraftText(draft)
+            ? 'Could not save your review. Your text is saved as a draft. Try again.'
+            : `Could not ${failedAction} your review. Try again.`}
         </p>
       ) : null}
 
@@ -213,15 +268,55 @@ function ReviewList({
                   </button>
                 </p>
               }
-              renderComments={renderComments}
+              onOpen={openReview}
             />
           ) : null}
           {reviews.map((review) => (
-            <ReviewItem key={review.id} review={review} renderComments={renderComments} />
+            <ReviewItem key={review.id} review={review} onOpen={openReview} />
           ))}
         </ul>
       ) : null}
+
+      {opened ? (
+        <ReviewWindow
+          items={listed.map((review) => ({ review, book }))}
+          openId={opened.id}
+          section={opened.section}
+          onOpen={openReview}
+          onClose={() => setOpened(undefined)}
+          renderComments={renderComments}
+        />
+      ) : null}
     </>
+  )
+}
+
+type UnfinishedReviewProps = {
+  draft: Draft
+  disabled: boolean
+  onContinue: () => void
+  onDiscard: () => void
+}
+
+function UnfinishedReview({ draft, disabled, onContinue, onDiscard }: UnfinishedReviewProps) {
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md bg-sunken px-3.5 py-2.5 text-sm">
+      <span className="font-semibold text-fg">You have an unfinished review</span>
+      <DraftStatus draft={draft} />
+      <span className="ml-auto flex gap-4 font-semibold">
+        <button
+          type="button"
+          onClick={onContinue}
+          disabled={disabled}
+          className="text-brand hover-mark disabled:opacity-50"
+        >
+          Continue writing
+        </button>
+        <button type="button" onClick={onDiscard} className="text-fg-2 hover-mark">
+          Discard
+        </button>
+      </span>
+    </div>
   )
 }
 
@@ -269,11 +364,10 @@ type ReviewItemProps = {
   review: Review
   avatarUrl?: string | null | undefined
   ownActions?: ReactNode
-  renderComments: RenderComments | undefined
+  onOpen: OpenReview
 }
 
-function ReviewItem({ review, avatarUrl, ownActions, renderComments }: ReviewItemProps) {
-  const [expanded, setExpanded] = useState(false)
+function ReviewItem({ review, avatarUrl, ownActions, onOpen }: ReviewItemProps) {
   const long = (review.body ?? '').length > REVIEW_CLAMP_CHARS
 
   return (
@@ -294,22 +388,30 @@ function ReviewItem({ review, avatarUrl, ownActions, renderComments }: ReviewIte
           <p className="mt-2 font-title text-lg font-bold text-fg">{review.title}</p>
         ) : null}
         {review.body ? (
-          <div className={`mt-2 ${long && !expanded ? BODY_CLAMP_CLASS : ''}`}>
+          <div className={`mt-2 ${long ? 'line-clamp-5 [&>div]:block [&_p+p]:mt-3' : ''}`}>
             <Markdown source={review.body} />
           </div>
         ) : null}
-        {long ? (
+        {ownActions}
+        <p className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-semibold">
+          {long ? (
+            <button
+              type="button"
+              onClick={() => onOpen(review.id)}
+              className="text-brand hover-mark"
+            >
+              Read full review
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={() => setExpanded((open) => !open)}
-            aria-expanded={expanded}
-            className="mt-1.5 text-sm font-semibold text-brand hover-mark"
+            onClick={() => onOpen(review.id, 'comments')}
+            className="flex items-center gap-1.5 text-fg-2 hover-mark"
           >
-            {expanded ? 'Show less' : 'Show more'}
+            <CommentIcon className="size-4" />
+            {review.commentCount === 0 ? 'Comment' : commentCountLabel(review.commentCount)}
           </button>
-        ) : null}
-        {ownActions}
-        {renderComments?.(review.id, review.commentCount)}
+        </p>
       </div>
     </li>
   )

@@ -1,9 +1,11 @@
 import { type ReactNode, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 
+import { DraftStatus } from '@/components/DraftStatus'
 import { BulletListIcon, LinkIcon, NumberedListIcon, QuoteIcon } from '@/components/icons'
 import { Markdown } from '@/components/Markdown'
 import { StarRating } from '@/components/StarRating'
+import { type Draft } from '@/lib/draftStore'
 import { formatCount } from '@/lib/formatCount'
 
 import { REVIEW_BODY_MAX, REVIEW_TITLE_MAX, type Review } from '../api/reviewSchemas'
@@ -16,11 +18,13 @@ type ReviewText = {
 
 type ReviewEditorProps = {
   review: Review | undefined
+  draft?: Draft | undefined
   rating: number
   pending: boolean
   onRate: (rating: number) => void
   onSubmit: (text: ReviewText) => void
   onCancel: () => void
+  onTextChange?: ((field: keyof ReviewText, value: string) => void) | undefined
 }
 
 type EditorTab = 'write' | 'preview'
@@ -46,21 +50,40 @@ const FORMATS: { kind: FormatKind; label: string; icon: ReactNode }[] = [
   { kind: 'link', label: 'Link', icon: <LinkIcon className={ICON_CLASS} /> },
 ]
 
+function startingText(review: Review | undefined, draft: Draft | undefined): ReviewText {
+  if (draft) {
+    return { title: draft.title ?? '', body: draft.body }
+  }
+  return { title: review?.title ?? '', body: review?.body ?? '' }
+}
+
 export function ReviewEditor({
   review,
+  draft,
   rating,
   pending,
   onRate,
   onSubmit,
   onCancel,
+  onTextChange,
 }: ReviewEditorProps) {
-  const [title, setTitle] = useState(review?.title ?? '')
-  const [body, setBody] = useState(review?.body ?? '')
+  const [title, setTitle] = useState(() => startingText(review, draft).title)
+  const [body, setBody] = useState(() => startingText(review, draft).body)
   const [tab, setTab] = useState<EditorTab>('write')
   const bodyArea = useRef<HTMLTextAreaElement>(null)
   const titleId = useId()
   const bodyLabelId = useId()
   const rated = rating > 0
+
+  function changeTitle(value: string) {
+    setTitle(value)
+    onTextChange?.('title', value)
+  }
+
+  function changeBody(value: string) {
+    setBody(value)
+    onTextChange?.('body', value)
+  }
 
   function format(kind: FormatKind) {
     const area = bodyArea.current
@@ -74,7 +97,7 @@ export function ReviewEditor({
     if (formatted.value.length > REVIEW_BODY_MAX) {
       return
     }
-    flushSync(() => setBody(formatted.value))
+    flushSync(() => changeBody(formatted.value))
     area.focus()
     area.setSelectionRange(formatted.start, formatted.end)
   }
@@ -96,7 +119,7 @@ export function ReviewEditor({
         id={titleId}
         value={title}
         maxLength={REVIEW_TITLE_MAX}
-        onChange={(event) => setTitle(event.target.value)}
+        onChange={(event) => changeTitle(event.target.value)}
         className="mt-1.5 h-11 w-full rounded-md border border-rule bg-raised px-3 text-fg outline-none focus:border-fg-2"
       />
 
@@ -147,7 +170,7 @@ export function ReviewEditor({
             maxLength={REVIEW_BODY_MAX}
             aria-labelledby={bodyLabelId}
             placeholder="What did you think of it?"
-            onChange={(event) => setBody(event.target.value)}
+            onChange={(event) => changeBody(event.target.value)}
             className="block w-full resize-y bg-raised px-3.5 py-3 font-mono leading-[1.7] text-fg outline-none placeholder:text-fg-3"
           />
         ) : (
@@ -185,6 +208,9 @@ export function ReviewEditor({
         {rated ? null : (
           <span className="text-sm text-fg-3">Rate the book to save your review.</span>
         )}
+        <span className="ml-auto">
+          <DraftStatus draft={draft} />
+        </span>
       </div>
     </div>
   )

@@ -10,5 +10,8 @@
     "title": "Golden Son",
     "authors": ["Pierce Brown"],
     "coverUrl": "https://covers.example/golden-son.jpg"
-  }
+  },
+  "commentCount": 2,
+  "readStartedAt": "2026-05-12",
+  "readFinishedAt": "2026-05-28"
 }

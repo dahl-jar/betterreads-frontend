@@ -12,6 +12,8 @@ export const reviewSchema = z.object({
   createdAt: z.string(),
   author: z.string(),
   commentCount: z.number().int(),
+  readStartedAt: z.string().nullish(),
+  readFinishedAt: z.string().nullish(),
 })
 
 export type Review = z.infer<typeof reviewSchema>

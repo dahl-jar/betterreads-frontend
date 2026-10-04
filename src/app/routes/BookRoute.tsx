@@ -117,11 +117,7 @@ function BookPage({ book }: { book: BookDetailData }) {
         {shelfCounts && reviewTotal !== undefined ? (
           <BookStats reviewTotal={reviewTotal} counts={shelfCounts} />
         ) : null}
-        <BookActivity
-          bookKey={book.key}
-          onReviewChange={refreshRatings}
-          onTotalChange={setReviewTotal}
-        />
+        <BookActivity book={book} onReviewChange={refreshRatings} onTotalChange={setReviewTotal} />
       </section>
     </>
   )

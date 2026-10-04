@@ -20,7 +20,7 @@ export function PrivacyRoute() {
         },
         {
           heading: 'What others can see',
-          body: 'Your shelves and reading dates are private. Your ratings, reviews, and comments are public and show your username.',
+          body: 'Your shelves are private. Your ratings, reviews, and comments are public and show your username. A review also shows when you read the book.',
         },
         {
           heading: 'Searches',

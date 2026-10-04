@@ -29,6 +29,13 @@ export const ICON_SHAPES = {
   warning: <path d="M10 3.5 17.5 16.5h-15zM10 8.5v3.5M10 14.3h.01" />,
   list: <path d="M3.5 5.5h13M3.5 10h13M3.5 14.5h13" />,
   clear: <path d="m6 6 8 8m0-8-8 8" />,
+  check: <path d="m5 10.5 3.2 3L15 6.5" />,
+  comment: (
+    <path d="M4 4.5h12a1 1 0 0 1 1 1v7.5a1 1 0 0 1-1 1H9l-3.5 3v-3H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1z" />
+  ),
+  openBook: (
+    <path d="M4 4.5h4.5A1.5 1.5 0 0 1 10 6v10a1.5 1.5 0 0 0-1.5-1.5H4zM16 4.5h-4.5A1.5 1.5 0 0 0 10 6v10a1.5 1.5 0 0 1 1.5-1.5H16z" />
+  ),
   grid: (
     <>
       <rect x="3.5" y="3.5" width="5" height="5" rx="1" />

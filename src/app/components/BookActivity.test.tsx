@@ -1,13 +1,15 @@
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import comment from '@/features/comments/__tests__/mocks/comment.json'
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedOut } from '@/testing/authHandlers'
 import { emptyPage } from '@/testing/emptyPage'
 import review from '@/testing/mocks/review.json'
+import book from '@/testing/mocks/reviewed-book.json'
 import { server } from '@/testing/msw-server'
-import { renderWithProviders, screen } from '@/testing/test-utils'
+import { renderWithProviders, screen, within } from '@/testing/test-utils'
 
 import { BookActivity } from './BookActivity'
 
@@ -30,7 +32,7 @@ describe('BookActivity', () => {
   it('should show reviews first', async () => {
     stubEmptyActivity()
 
-    renderWithProviders(<BookActivity bookKey="OL1W" />)
+    renderWithProviders(<BookActivity book={book} />)
 
     expect(await screen.findByRole('heading', { name: /ratings & reviews/i })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /discussion/i })).toBeNull()
@@ -38,7 +40,7 @@ describe('BookActivity', () => {
 
   it('should show the discussion tab', async () => {
     stubEmptyActivity()
-    const { user } = renderWithProviders(<BookActivity bookKey="OL1W" />)
+    const { user } = renderWithProviders(<BookActivity book={book} />)
 
     await user.click(await screen.findByRole('tab', { name: 'Discussions' }))
 
@@ -46,19 +48,27 @@ describe('BookActivity', () => {
     expect(screen.queryByRole('heading', { name: /ratings & reviews/i })).toBeNull()
   })
 
-  it("should label a review's comment toggle with its comment count", async () => {
+  it('should open the review thread in the window from the comment count', async () => {
     stubEmptyActivity()
     server.use(
       http.get(`${BASE}/books/OL1W/reviews`, () =>
         HttpResponse.json({
-          data: [{ ...review, commentCount: 3 }],
+          data: [{ ...review, commentCount: 1 }],
+          meta: { total: 1, offset: 0, limit: 20 },
+        }),
+      ),
+      http.get(`${BASE}/reviews/1/comments`, () =>
+        HttpResponse.json({
+          data: [{ ...comment, body: 'The sandworms carry it.' }],
           meta: { total: 1, offset: 0, limit: 20 },
         }),
       ),
     )
+    const { user } = renderWithProviders(<BookActivity book={book} />)
 
-    renderWithProviders(<BookActivity bookKey="OL1W" />)
+    await user.click(await screen.findByRole('button', { name: '1 comment' }))
 
-    expect(await screen.findByRole('button', { name: '3 comments' })).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: 'Dune' })
+    expect(await within(dialog).findByText('The sandworms carry it.')).toBeInTheDocument()
   })
 })

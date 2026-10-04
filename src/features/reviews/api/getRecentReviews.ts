@@ -2,15 +2,12 @@ import { z } from 'zod'
 
 import { apiGet } from '@/lib/api/client'
 
+import { reviewSchema } from './reviewSchemas'
+
 const RECENT_REVIEWS_PATH = '/api/v1/reviews/recent'
 
-const recentReviewSchema = z.object({
-  id: z.number().int(),
-  author: z.string(),
-  rating: z.number().int().nullish(),
-  title: z.string().nullish(),
+const recentReviewSchema = reviewSchema.omit({ bookKey: true }).extend({
   body: z.string(),
-  createdAt: z.string(),
   book: z.object({
     key: z.string(),
     title: z.string(),

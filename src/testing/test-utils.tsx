@@ -4,6 +4,7 @@ import type { ReactElement, ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 
 import { AuthProvider } from '@/app/components/AuthProvider'
+import { DraftGuardProvider } from '@/components/DraftGuard'
 
 type RenderWithProvidersOptions = Omit<RenderOptions, 'wrapper'> & {
   route?: string
@@ -17,7 +18,9 @@ export function renderWithProviders(
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <MemoryRouter initialEntries={[route]}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <DraftGuardProvider>{children}</DraftGuardProvider>
+        </AuthProvider>
       </MemoryRouter>
     )
   }

@@ -111,6 +111,18 @@ export function ClearIcon({ className }: IconProps) {
   return <ShapeIcon shape="clear" className={className} />
 }
 
+export function CheckIcon({ className }: IconProps) {
+  return <ShapeIcon shape="check" className={className} />
+}
+
+export function CommentIcon({ className }: IconProps) {
+  return <ShapeIcon shape="comment" className={className} />
+}
+
+export function OpenBookIcon({ className }: IconProps) {
+  return <ShapeIcon shape="openBook" className={className} />
+}
+
 export function ChevronLeftIcon({ className }: IconProps) {
   return (
     <StrokeIcon className={className}>

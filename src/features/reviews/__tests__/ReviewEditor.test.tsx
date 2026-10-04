@@ -1,6 +1,7 @@
 import { type ComponentProps } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
+import draft from '@/testing/mocks/draft.json'
 import review from '@/testing/mocks/review.json'
 import { render, screen, userEvent, within } from '@/testing/test-utils'
 
@@ -17,6 +18,7 @@ function renderEditor(overrides: Partial<ReviewEditorProps> = {}) {
     onRate: vi.fn(),
     onSubmit: vi.fn(),
     onCancel: vi.fn(),
+    onTextChange: vi.fn(),
     ...overrides,
   }
   return { user: userEvent.setup(), props, ...render(<ReviewEditor {...props} />) }
@@ -111,6 +113,31 @@ describe('ReviewEditor', () => {
       title: 'Golden path',
       body: 'The ending earned it.',
     })
+  })
+
+  it('should start from the draft over the saved review', () => {
+    renderEditor({ review, draft: { ...draft, title: 'Unfinished', body: 'Half done.' } })
+
+    expect(screen.getByLabelText('Title')).toHaveValue('Unfinished')
+    expect(screen.getByLabelText('Review')).toHaveValue('Half done.')
+  })
+
+  it.each([
+    { label: 'Title', field: 'title' },
+    { label: 'Review', field: 'body' },
+  ])('should report a change to the $label text', async ({ label, field }) => {
+    const { user, props } = renderEditor()
+
+    await user.type(screen.getByLabelText(label), 'G')
+
+    expect(props.onTextChange).toHaveBeenCalledWith(field, 'G')
+  })
+
+  it('should report the formatted text as a change', async () => {
+    const { user, props } = renderEditor()
+    await user.click(screen.getByRole('button', { name: 'Bold' }))
+
+    expect(props.onTextChange).toHaveBeenLastCalledWith('body', '**bold text**')
   })
 
   it('should report a cancel', async () => {

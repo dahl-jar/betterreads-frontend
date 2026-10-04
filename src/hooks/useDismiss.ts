@@ -1,6 +1,6 @@
 import { type RefObject, useEffect } from 'react'
 
-const CLOSE_KEY = 'Escape'
+export const CLOSE_KEY = 'Escape'
 
 export function useDismiss(
   ref: RefObject<HTMLElement | null>,

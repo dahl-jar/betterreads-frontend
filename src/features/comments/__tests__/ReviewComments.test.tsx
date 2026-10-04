@@ -3,9 +3,18 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
+import { clearDrafts, writeDraft } from '@/lib/draftStore'
 import { stubSignedIn, stubSignedOut } from '@/testing/authHandlers'
+import draft from '@/testing/mocks/draft.json'
 import { server } from '@/testing/msw-server'
-import { renderWithProviders, screen, waitFor } from '@/testing/test-utils'
+import {
+  cleanup as screenCleanup,
+  renderWithProviders,
+  screen,
+  type userEvent,
+  waitFor,
+  within,
+} from '@/testing/test-utils'
 
 import { ReviewComments } from '../components/ReviewComments'
 
@@ -15,27 +24,34 @@ const BASE = 'http://localhost:8080/api/v1'
 const THREAD_URL = `${BASE}/reviews/7/comments`
 const SERVER_ERROR = 500
 
+type User = ReturnType<typeof userEvent.setup>
+
 function commentPage(comments: Record<string, unknown>[], total = comments.length) {
   return HttpResponse.json({ data: comments, meta: { total, offset: 0, limit: 20 } })
 }
 
 function stubThread(comments: Record<string, unknown>[], total = comments.length) {
-  const requests: string[] = []
-  server.use(
-    http.get(THREAD_URL, ({ request }) => {
-      requests.push(request.url)
-      return commentPage(comments, total)
-    }),
-  )
-  return requests
+  server.use(http.get(THREAD_URL, () => commentPage(comments, total)))
 }
 
-async function openSignedInThread() {
+function stubPost(body: string) {
+  server.use(
+    http.post(THREAD_URL, () =>
+      HttpResponse.json({ data: { ...comment, id: 9, body } }, { status: 201 }),
+    ),
+  )
+}
+
+function openSignedInThread() {
   stubSignedIn()
   stubThread([comment])
-  const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
-  await user.click(await screen.findByRole('button', { name: '1 comment' }))
-  return user
+  return renderWithProviders(<ReviewComments reviewId={7} />).user
+}
+
+async function typeComment(user: User, text: string) {
+  const box = await screen.findByRole('textbox', { name: 'Add a comment' })
+  await user.type(box, text)
+  return box
 }
 
 async function showReplies(
@@ -46,40 +62,22 @@ async function showReplies(
   stubSignedOut()
   stubThread([{ ...comment, replyCount }])
   server.use(http.get(`${BASE}/comments/1/replies`, () => commentPage(replies, total)))
-  const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
-  await user.click(await screen.findByRole('button', { name: '1 comment' }))
+  const { user } = renderWithProviders(<ReviewComments reviewId={7} />)
   await user.click(await screen.findByRole('button', { name: `Show ${replyCount} replies` }))
 }
 
 afterEach(() => {
   clearAccessToken()
   setRefreshHandler(undefined)
+  clearDrafts()
 })
 
 describe('ReviewComments', () => {
-  it('should not load the thread until the reader opens it', async () => {
-    let sessionChecked = false
-    server.use(
-      http.post(`${BASE}/auth/refresh`, () => {
-        sessionChecked = true
-        return new HttpResponse(null, { status: 401 })
-      }),
-    )
-    const requests = stubThread([])
-
-    renderWithProviders(<ReviewComments reviewId={7} commentCount={3} />)
-
-    expect(await screen.findByRole('button', { name: '3 comments' })).toBeInTheDocument()
-    await waitFor(() => expect(sessionChecked).toBe(true))
-    expect(requests).toEqual([])
-  })
-
-  it('should show comments when opened', async () => {
+  it('should show the comments', async () => {
     stubSignedOut()
     stubThread([comment])
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
 
-    await user.click(await screen.findByRole('button', { name: '1 comment' }))
+    renderWithProviders(<ReviewComments reviewId={7} />)
 
     expect(await screen.findByText('Comment 1')).toBeInTheDocument()
   })
@@ -87,9 +85,8 @@ describe('ReviewComments', () => {
   it('should show an alert when the comments cannot be loaded', async () => {
     stubSignedOut()
     server.use(http.get(THREAD_URL, () => new HttpResponse(null, { status: SERVER_ERROR })))
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={1} />)
 
-    await user.click(await screen.findByRole('button', { name: '1 comment' }))
+    renderWithProviders(<ReviewComments reviewId={7} />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not load comments. Try again.',
@@ -98,12 +95,9 @@ describe('ReviewComments', () => {
 
   it('should offer more comments when some are not shown', async () => {
     stubSignedOut()
-    stubThread([comment], 4)
-    const { user } = renderWithProviders(
-      <ReviewComments reviewId={7} commentCount={4} pageSize={1} />,
-    )
+    stubThread([comment], 40)
 
-    await user.click(await screen.findByRole('button', { name: '4 comments' }))
+    renderWithProviders(<ReviewComments reviewId={7} />)
 
     expect(await screen.findByRole('button', { name: 'Show more comments' })).toBeInTheDocument()
   })
@@ -121,51 +115,131 @@ describe('ReviewComments', () => {
         )
       }),
     )
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={0} />)
+    const { user } = renderWithProviders(<ReviewComments reviewId={7} />)
+    await typeComment(user, 'My comment')
 
-    await user.click(await screen.findByRole('button', { name: 'Comment' }))
-    await user.type(await screen.findByRole('textbox', { name: 'Add a comment' }), 'My comment')
     await user.click(screen.getByRole('button', { name: 'Post' }))
 
     await waitFor(() => expect(sent).toEqual({ body: 'My comment' }))
   })
 
-  it('should count a posted comment once the thread is closed', async () => {
-    server.use(
-      http.post(THREAD_URL, () =>
-        HttpResponse.json({ data: { ...comment, id: 9, body: 'My comment' } }, { status: 201 }),
-      ),
-    )
-    const user = await openSignedInThread()
-    await user.type(await screen.findByRole('textbox', { name: 'Add a comment' }), 'My comment')
-    await user.click(screen.getByRole('button', { name: 'Post' }))
-    await screen.findByText('My comment')
-
-    await user.click(screen.getByRole('button', { name: 'Hide comments' }))
-
-    expect(screen.getByRole('button', { name: '2 comments' })).toBeInTheDocument()
-  })
-
-  it('should keep the comment when posting fails', async () => {
+  it('should keep the comment as a draft when posting fails', async () => {
     stubSignedIn()
     stubThread([])
     server.use(http.post(THREAD_URL, () => new HttpResponse(null, { status: SERVER_ERROR })))
     const { user } = renderWithProviders(<ReviewComments reviewId={7} />)
-    await user.click(await screen.findByRole('button', { name: 'Comment' }))
-    const draft = await screen.findByRole('textbox', { name: 'Add a comment' })
-    await user.type(draft, 'Keep this draft')
+    const box = await typeComment(user, 'Keep this draft')
 
     await user.click(screen.getByRole('button', { name: 'Post' }))
 
-    expect(await screen.findByText('Could not post. Try again.')).toBeInTheDocument()
-    expect(draft).toHaveValue('Keep this draft')
+    expect(
+      await screen.findByText('Could not post. Your text is saved as a draft. Try again.'),
+    ).toBeInTheDocument()
+    expect(box).toHaveValue('Keep this draft')
   })
 
-  it('should give the reply textarea an accessible name', async () => {
-    const user = await openSignedInThread()
-    await user.click(await screen.findByRole('button', { name: 'Reply' }))
+  it('should bring back an unposted comment when the thread opens again', async () => {
+    const user = openSignedInThread()
+    await typeComment(user, 'Half a thought')
+    screenCleanup()
+    stubThread([comment])
 
-    expect(screen.getByRole('textbox', { name: 'Write a reply' })).toBeInTheDocument()
+    renderWithProviders(<ReviewComments reviewId={7} />)
+
+    expect(await screen.findByRole('textbox', { name: 'Add a comment' })).toHaveValue(
+      'Half a thought',
+    )
+  })
+
+  it('should say the comment is saved as a draft while typing', async () => {
+    const user = openSignedInThread()
+
+    await typeComment(user, 'Half a thought')
+
+    expect(screen.getByText(/^Draft saved/)).toBeInTheDocument()
+  })
+
+  it('should say when an older draft was saved', async () => {
+    stubSignedIn()
+    stubThread([comment])
+    renderWithProviders(<ReviewComments reviewId={7} />)
+    await screen.findByText('Comment 1')
+
+    writeDraft('user', 'review-comment:7', draft)
+
+    expect(await screen.findByText('Draft from Jan 5')).toBeInTheDocument()
+  })
+
+  it('should drop the draft once the comment is posted', async () => {
+    stubPost('Posted')
+    const user = openSignedInThread()
+    await typeComment(user, 'Posted')
+    await user.click(screen.getByRole('button', { name: 'Post' }))
+    await screen.findByText('Posted')
+    screenCleanup()
+    stubThread([comment])
+
+    renderWithProviders(<ReviewComments reviewId={7} />)
+
+    expect(await screen.findByRole('textbox', { name: 'Add a comment' })).toHaveValue('')
+  })
+
+  it('should ask before cancelling a written comment', async () => {
+    const user = openSignedInThread()
+    await typeComment(user, 'Half a thought')
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(
+      screen.getByRole('alertdialog', { name: 'Save your comment as a draft?' }),
+    ).toBeInTheDocument()
+  })
+
+  it('should empty the comment box when the draft is discarded', async () => {
+    const user = openSignedInThread()
+    const box = await typeComment(user, 'Half a thought')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }))
+
+    expect(box).toHaveValue('')
+    expect(screen.queryByText(/^Draft saved/)).not.toBeInTheDocument()
+  })
+
+  it('should keep the comment when the save-draft prompt is cancelled', async () => {
+    const user = openSignedInThread()
+    const box = await typeComment(user, 'Half a thought')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    const prompt = screen.getByRole('alertdialog')
+
+    await user.click(within(prompt).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(box).toHaveValue('Half a thought')
+  })
+
+  it('should mark the reply as a draft after saving it on cancel', async () => {
+    const user = openSignedInThread()
+    await user.click(await screen.findByRole('button', { name: 'Reply' }))
+    await user.type(screen.getByRole('textbox', { name: 'Write a reply' }), 'Agreed')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await user.click(screen.getByRole('button', { name: 'Save draft' }))
+
+    expect(screen.queryByRole('textbox', { name: 'Write a reply' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reply (draft)' })).toBeInTheDocument()
+  })
+
+  it('should ask about a written reply when its Reply button closes it', async () => {
+    const user = openSignedInThread()
+    await user.click(await screen.findByRole('button', { name: 'Reply' }))
+    await user.type(screen.getByRole('textbox', { name: 'Write a reply' }), 'Agreed')
+
+    await user.click(screen.getByRole('button', { name: 'Reply' }))
+
+    expect(
+      screen.getByRole('alertdialog', { name: 'Save your reply as a draft?' }),
+    ).toBeInTheDocument()
   })
 
   it('should load replies when expanded', async () => {
@@ -181,7 +255,7 @@ describe('ReviewComments', () => {
   })
 
   it('should place the comment box after the comments', async () => {
-    await openSignedInThread()
+    openSignedInThread()
 
     const posted = await screen.findByText('Comment 1')
     const box = screen.getByRole('textbox', { name: 'Add a comment' })
@@ -191,34 +265,9 @@ describe('ReviewComments', () => {
   it('should offer a log-in link to a signed-out reader', async () => {
     stubSignedOut()
     stubThread([])
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} />)
 
-    await user.click(await screen.findByRole('button', { name: 'Comment' }))
+    renderWithProviders(<ReviewComments reviewId={7} />)
 
     expect(await screen.findByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login')
-  })
-
-  it('should mark the toggle collapsed while the thread is closed', async () => {
-    stubSignedOut()
-
-    renderWithProviders(<ReviewComments reviewId={7} commentCount={3} />)
-
-    expect(await screen.findByRole('button', { name: '3 comments' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    )
-  })
-
-  it('should mark the toggle expanded while the thread is open', async () => {
-    stubSignedOut()
-    stubThread([])
-    const { user } = renderWithProviders(<ReviewComments reviewId={7} commentCount={3} />)
-
-    await user.click(await screen.findByRole('button', { name: '3 comments' }))
-
-    expect(await screen.findByRole('button', { name: 'Hide comments' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    )
   })
 })

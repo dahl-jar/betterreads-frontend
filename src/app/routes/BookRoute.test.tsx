@@ -115,10 +115,10 @@ describe('BookRoute', () => {
 
     await waitFor(() =>
       expect(shownStats()).toEqual([
-        ['Reviews', '1,957'],
+        ['Want to read', '3'],
         ['Reading now', '12'],
         ['Read', '20,431'],
-        ['Want to read', '3'],
+        ['Reviews', '1,957'],
       ]),
     )
   })
