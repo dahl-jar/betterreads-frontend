@@ -7,6 +7,8 @@ import { server } from '@/testing/msw-server'
 
 import { useBook } from '../hooks/useBook'
 
+import sparseDetail from './mocks/book-detail-sparse.json'
+
 const API_BASE_URL = 'http://localhost:8080/api/v1/books'
 const POLL_INTERVAL_MS = 5_000
 const POLL_ATTEMPT_LIMIT = 12
@@ -43,14 +45,7 @@ class FakeEventSource {
 }
 
 function detail(key: string, complete: boolean, title = 'A Book') {
-  return {
-    key,
-    complete,
-    title,
-    authors: ['An Author'],
-    subjects: [],
-    awards: [],
-  }
+  return { ...sparseDetail, key, complete, title }
 }
 
 function countIncompletePolls() {

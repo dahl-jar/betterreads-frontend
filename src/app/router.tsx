@@ -50,6 +50,10 @@ export const routes: RouteObject[] = [
             element: lazyElement(() => import('./routes/BookRoute'), 'BookRoute', 'Book'),
           },
           {
+            path: '/authors/:id',
+            element: lazyElement(() => import('./routes/AuthorRoute'), 'AuthorRoute', 'Author'),
+          },
+          {
             path: '/profile',
             element: lazyElement(() => import('./routes/ProfileRoute'), 'ProfileRoute', 'Profile'),
           },

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { useDocumentTitle } from '../useDocumentTitle'
 
-type NotFoundKind = 'error' | 'book' | 'page'
+type NotFoundKind = 'error' | 'book' | 'author' | 'page'
 
 type NotFoundPageProps = {
   kind: NotFoundKind
@@ -16,6 +16,10 @@ const COPY: Record<NotFoundKind, { title: string; description: string }> = {
   book: {
     title: 'Book not found',
     description: "We couldn't find this book. Check the address or head back to search.",
+  },
+  author: {
+    title: 'Author not found',
+    description: "We couldn't find this author. Check the address or head back to search.",
   },
   page: {
     title: 'Page not found',

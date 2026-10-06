@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Pagination } from '@/components/Pagination'
+import { AuthorResults } from '@/features/search/components/AuthorResults'
 import { SearchResults } from '@/features/search/components/SearchResults'
 import { useSearch } from '@/features/search/hooks/useSearch'
 
@@ -45,6 +46,7 @@ export function SearchRoute() {
           Results for <span className="italic text-brand">{query}</span>
         </h1>
       )}
+      {page === 1 ? <AuthorResults query={query} /> : null}
       <SearchResults status={status} hits={hits} query={query} />
       {status === 'success' ? (
         <Pagination

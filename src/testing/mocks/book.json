@@ -3,6 +3,13 @@
   "complete": true,
   "title": "Hunters of Dune",
   "authors": ["Brian Herbert"],
+  "contributors": [
+    {
+      "authorId": 1,
+      "name": "Brian Herbert",
+      "role": "AUTHOR"
+    }
+  ],
   "subjects": [],
   "awards": []
 }

@@ -4,6 +4,13 @@
   "title": "Words of Radiance",
   "subtitle": null,
   "authors": ["Brandon Sanderson"],
+  "contributors": [
+    {
+      "authorId": 87,
+      "name": "Brandon Sanderson",
+      "role": "AUTHOR"
+    }
+  ],
   "description": "The second book of The Stormlight Archive.",
   "coverUrl": null,
   "firstPublishYear": 2014,
@@ -15,8 +22,14 @@
   "seriesName": "The Stormlight Archive",
   "seriesPosition": 2,
   "series": [
-    { "name": "The Stormlight Archive", "position": 2 },
-    { "name": "The Cosmere", "position": 12 }
+    {
+      "name": "The Stormlight Archive",
+      "position": 2
+    },
+    {
+      "name": "The Cosmere",
+      "position": 12
+    }
   ],
   "subjects": ["Fantasy"],
   "awards": []

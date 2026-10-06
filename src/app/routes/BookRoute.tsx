@@ -16,6 +16,7 @@ import { ShelfControl } from '@/features/shelf/components/ShelfControl'
 import { useShelfCounts } from '@/features/shelf/hooks/useShelfCounts'
 import { READING_STATUS_LABELS } from '@/features/shelf/utils/readingStatusLabels'
 import { shelfDateOf } from '@/features/shelf/utils/shelfDateOf'
+import { authorPath } from '@/lib/authorPath'
 
 import { BookActivity } from '../components/BookActivity'
 import { BookStats } from '../components/BookStats'
@@ -95,7 +96,7 @@ function BookPage({ book }: { book: BookDetailData }) {
       <BookDetail
         book={book}
         seriesHref={searchPath}
-        authorHref={searchPath}
+        authorHref={authorPath}
         hardcoverRating={hardcoverRating}
         communityRating={
           typeof communityRating?.average === 'number'

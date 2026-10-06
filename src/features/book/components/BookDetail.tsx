@@ -5,7 +5,7 @@ import { BookCover } from '@/components/BookCover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AUTHOR_SEPARATOR, AUTHOR_UNKNOWN } from '@/lib/formatAuthors'
 
-import { type BookDetail as BookDetailData } from '../api/getBook'
+import { type BookDetail as BookDetailData, type Contributor } from '../api/getBook'
 import { bookRating } from '../utils/bookRating'
 
 import { RatingPair, type Rating } from './RatingPair'
@@ -15,7 +15,7 @@ import { ShowMoreText } from './ShowMoreText'
 type BookDetailProps = {
   book: BookDetailData
   seriesHref: (name: string) => string
-  authorHref: (name: string) => string
+  authorHref: (authorId: number) => string
   hardcoverRating?: Rating | undefined
   communityRating?: Rating | undefined
   shelfControl?: ReactNode
@@ -27,13 +27,43 @@ const GRID_CLASS =
   'grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-5 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-x-8 lg:grid-cols-[13rem_minmax(0,1fr)_17rem] lg:gap-10'
 const RAIL_ITEM_CLASS = 'col-span-2 empty:hidden lg:order-none'
 
-type AuthorLinksProps = {
-  authors: string[]
-  authorHref: (name: string) => string
+const CREDIT_LABELS: Record<string, string> = {
+  ILLUSTRATOR: 'Illustrated by',
+  TRANSLATOR: 'Translated by',
+  NARRATOR: 'Narrated by',
+  INTRODUCTION: 'Introduction by',
 }
 
-function AuthorLinks({ authors, authorHref }: AuthorLinksProps) {
-  if (authors.length === 0) {
+type CreditProps = {
+  book: BookDetailData
+  authorHref: (authorId: number) => string
+}
+
+type ContributorLinksProps = {
+  contributors: Contributor[]
+  authorHref: (authorId: number) => string
+}
+
+const PRIMARY_ROLES = new Set(['AUTHOR', 'EDITOR'])
+
+function primaryContributors(contributors: Contributor[]): Contributor[] {
+  return contributors.filter((credit) => PRIMARY_ROLES.has(credit.role))
+}
+
+function ContributorLinks({ contributors, authorHref }: ContributorLinksProps) {
+  return contributors.map((credit, index) => (
+    <Fragment key={credit.authorId}>
+      {index > 0 ? AUTHOR_SEPARATOR : null}
+      <Link to={authorHref(credit.authorId)} className="hover-mark">
+        {credit.name}
+      </Link>
+    </Fragment>
+  ))
+}
+
+function AuthorLinks({ book, authorHref }: CreditProps) {
+  const primary = primaryContributors(book.contributors)
+  if (primary.length === 0 && book.authors.length === 0) {
     return <span className="text-fg">{AUTHOR_UNKNOWN}</span>
   }
 
@@ -41,16 +71,36 @@ function AuthorLinks({ authors, authorHref }: AuthorLinksProps) {
     <>
       by{' '}
       <span className="text-fg">
-        {authors.map((author, index) => (
-          <Fragment key={author}>
-            {index > 0 ? AUTHOR_SEPARATOR : null}
-            <Link to={authorHref(author)} className="hover-mark">
-              {author}
-            </Link>
-          </Fragment>
-        ))}
+        {primary.length > 0 ? (
+          <ContributorLinks contributors={primary} authorHref={authorHref} />
+        ) : (
+          book.authors.join(AUTHOR_SEPARATOR)
+        )}
       </span>
     </>
+  )
+}
+
+function CreditLine({ book, authorHref }: CreditProps) {
+  const credited = book.contributors.filter((credit) => CREDIT_LABELS[credit.role] !== undefined)
+  const roles = [...new Set(credited.map((credit) => credit.role))]
+  if (roles.length === 0) {
+    return null
+  }
+
+  return (
+    <p className="mt-1 text-sm text-fg-3">
+      {roles.map((role, index) => (
+        <Fragment key={role}>
+          {index > 0 ? ' · ' : null}
+          {CREDIT_LABELS[role]}{' '}
+          <ContributorLinks
+            contributors={credited.filter((credit) => credit.role === role)}
+            authorHref={authorHref}
+          />
+        </Fragment>
+      ))}
+    </p>
   )
 }
 
@@ -90,11 +140,12 @@ export function BookDetail({
             </p>
           ) : null}
           <p className="mt-1.5 text-fg-2 sm:text-lg lg:mt-3">
-            <AuthorLinks authors={book.authors} authorHref={authorHref} />
+            <AuthorLinks book={book} authorHref={authorHref} />
             {book.firstPublishYear ? (
               <span className="text-fg-3"> · {book.firstPublishYear}</span>
             ) : null}
           </p>
+          <CreditLine book={book} authorHref={authorHref} />
           <div className="mt-3 lg:mt-6">
             <RatingPair
               hardcover={hardcoverRating ?? bookRating(book)}

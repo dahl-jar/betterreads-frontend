@@ -1,5 +1,5 @@
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.betterreadsapp.com https://covers.openlibrary.org https://assets.hardcover.app https://books.google.com; font-src 'self'; connect-src 'self' https://api.betterreadsapp.com https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.betterreadsapp.com https://covers.openlibrary.org https://assets.hardcover.app https://books.google.com https://commons.wikimedia.org https://upload.wikimedia.org; font-src 'self'; connect-src 'self' https://api.betterreadsapp.com https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY

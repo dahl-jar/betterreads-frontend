@@ -185,14 +185,14 @@ describe('BookRoute', () => {
     ])
   })
 
-  it('should point each author link at its search', async () => {
+  it('should point each author link at its author page', async () => {
     stubBookPage(reviewTotal(0))
     stubShelfCounts(() => HttpResponse.json(shelfCounts))
 
     renderBookPage()
 
     const authorLink = await screen.findByRole('link', { name: 'Brian Herbert' })
-    expect(authorLink).toHaveAttribute('href', '/search?q=Brian+Herbert')
+    expect(authorLink).toHaveAttribute('href', '/authors/1')
   })
 
   it('should show the BetterReads rating', async () => {

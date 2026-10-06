@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { initialOf } from '@/lib/initialOf'
 
 type AvatarProps = {
@@ -14,13 +16,15 @@ const SIZES = {
 } as const
 
 export function Avatar({ name, url, size = 'md' }: AvatarProps) {
+  const [failedUrl, setFailedUrl] = useState<string | undefined>(undefined)
   const dimensions = SIZES[size]
 
-  if (url) {
+  if (url && failedUrl !== url) {
     return (
       <img
         src={url}
         alt=""
+        onError={() => setFailedUrl(url)}
         className={`${dimensions} shrink-0 rounded-full border border-rule object-cover`}
       />
     )

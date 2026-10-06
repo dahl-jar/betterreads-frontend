@@ -7,6 +7,8 @@ import { server } from '@/testing/msw-server'
 import type { BookDetail } from '../api/getBook'
 import { useBook } from '../hooks/useBook'
 
+import sparseDetail from './mocks/book-detail-sparse.json'
+
 const BOOK_URL = 'http://localhost:8080/api/v1/books/key-1'
 
 type SubscribeOptions = {
@@ -29,15 +31,7 @@ afterEach(() => {
 })
 
 function body(overrides: Record<string, unknown> = {}) {
-  return {
-    key: 'key-1',
-    complete: true,
-    title: 'A Book',
-    authors: ['An Author'],
-    subjects: [],
-    awards: [],
-    ...overrides,
-  }
+  return { ...sparseDetail, key: 'key-1', complete: true, title: 'A Book', ...overrides }
 }
 
 describe('useBook', () => {

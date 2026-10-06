@@ -4,14 +4,14 @@ import { FakeEventSource, ThrowingEventSource } from '@/testing/fakeEventSource'
 
 import { subscribeToBook } from '../api/subscribeToBook'
 
+import sparseDetail from './mocks/book-detail-sparse.json'
+
 const validDetail = {
+  ...sparseDetail,
   key: 'key-1',
   complete: true,
   title: 'A Book',
-  authors: ['An Author'],
   description: 'Now enriched.',
-  subjects: [],
-  awards: [],
 }
 
 describe('subscribeToBook', () => {

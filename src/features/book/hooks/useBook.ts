@@ -1,11 +1,10 @@
 import { useEffect, useReducer } from 'react'
 
-import { ApiError } from '@/lib/api/client'
+import { loadResource } from '@/lib/api/loadResource'
 
 import { getBook, type BookDetail } from '../api/getBook'
 import { subscribeToBook } from '../api/subscribeToBook'
 
-const NOT_FOUND = 404
 const POLL_INTERVAL_MS = 5_000
 const POLL_ATTEMPT_LIMIT = 12
 
@@ -80,22 +79,12 @@ export function useBook(key: string): BookState {
   const [state, dispatch] = useReducer(bookReducer, INITIAL_STATE)
 
   useEffect(() => {
-    const controller = new AbortController()
     dispatch({ type: 'loading' })
-    getBook(key, controller.signal)
-      .then((book) => dispatch({ type: 'loaded', book }))
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return
-        }
-        if (error instanceof ApiError && error.status === NOT_FOUND) {
-          dispatch({ type: 'notFound' })
-        } else {
-          dispatch({ type: 'failed' })
-        }
-      })
-
-    return () => controller.abort()
+    return loadResource((signal) => getBook(key, signal), {
+      onLoaded: (book) => dispatch({ type: 'loaded', book }),
+      onNotFound: () => dispatch({ type: 'notFound' }),
+      onFailed: () => dispatch({ type: 'failed' }),
+    })
   }, [key])
 
   const coldKey = state.status === 'success' && state.book && !state.book.complete ? key : undefined

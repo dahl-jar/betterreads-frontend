@@ -14,6 +14,10 @@ const fullBook: BookDetailData = {
   title: 'Hunters of Dune',
   subtitle: 'Sequel to Chapterhouse',
   authors: ['Brian Herbert', 'Kevin J. Anderson'],
+  contributors: [
+    { authorId: 11, name: 'Brian Herbert', role: 'AUTHOR' },
+    { authorId: 12, name: 'Kevin J. Anderson', role: 'AUTHOR' },
+  ],
   description: 'A Dune universe novel.',
   averageRating: 3.9,
   seriesName: 'Dune',
@@ -27,8 +31,8 @@ function seriesHref(name: string) {
   return `/series/${name}`
 }
 
-function authorHref(name: string) {
-  return `/authors/${name}`
+function authorHref(authorId: number) {
+  return `/authors/${authorId}`
 }
 
 describe('BookDetail', () => {
@@ -60,7 +64,7 @@ describe('BookDetail', () => {
     expect(screen.getByRole('button', { name: 'Show more' })).toBeInTheDocument()
   })
 
-  it('should link each author to the given target', () => {
+  it('should link authors by id', () => {
     renderWithProviders(
       <BookDetail book={fullBook} seriesHref={seriesHref} authorHref={authorHref} />,
     )
@@ -68,15 +72,64 @@ describe('BookDetail', () => {
     const brian = screen.getByRole('link', { name: 'Brian Herbert' })
     const kevin = screen.getByRole('link', { name: 'Kevin J. Anderson' })
 
-    expect(brian).toHaveAttribute('href', '/authors/Brian Herbert')
-    expect(kevin).toHaveAttribute('href', '/authors/Kevin J. Anderson')
+    expect(brian).toHaveAttribute('href', '/authors/11')
+    expect(kevin).toHaveAttribute('href', '/authors/12')
     expect(brian.parentElement).toHaveTextContent(/^Brian Herbert, Kevin J. Anderson$/)
+  })
+
+  it('should show the illustrator line', () => {
+    const illustrated = {
+      ...fullBook,
+      contributors: [
+        ...fullBook.contributors,
+        { authorId: 13, name: 'Marc Simonetti', role: 'ILLUSTRATOR' },
+        { authorId: 14, name: 'Studio Hands', role: 'OTHER' },
+      ],
+    }
+
+    renderWithProviders(
+      <BookDetail book={illustrated} seriesHref={seriesHref} authorHref={authorHref} />,
+    )
+
+    expect(screen.getByText(/Illustrated by/)).toHaveTextContent('Illustrated by Marc Simonetti')
+    expect(screen.queryByText('Studio Hands')).not.toBeInTheDocument()
+  })
+
+  it('should list an editor with the authors', () => {
+    const anthology = {
+      ...fullBook,
+      contributors: [
+        { authorId: 21, name: 'Stephen Jones', role: 'EDITOR' },
+        { authorId: 22, name: 'H. P. Lovecraft', role: 'AUTHOR' },
+      ],
+    }
+
+    renderWithProviders(
+      <BookDetail book={anthology} seriesHref={seriesHref} authorHref={authorHref} />,
+    )
+
+    expect(screen.getByRole('link', { name: 'H. P. Lovecraft' }).parentElement).toHaveTextContent(
+      /^Stephen Jones, H\. P\. Lovecraft$/,
+    )
+  })
+
+  it('should show names without links when the book has no contributors', () => {
+    renderWithProviders(
+      <BookDetail
+        book={{ ...fullBook, contributors: [] }}
+        seriesHref={seriesHref}
+        authorHref={authorHref}
+      />,
+    )
+
+    expect(screen.getByText(/Brian Herbert/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Brian Herbert' })).not.toBeInTheDocument()
   })
 
   it('should say when the book has no known author', () => {
     renderWithProviders(
       <BookDetail
-        book={{ ...fullBook, authors: [] }}
+        book={{ ...fullBook, authors: [], contributors: [] }}
         seriesHref={seriesHref}
         authorHref={authorHref}
       />,

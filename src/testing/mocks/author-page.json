@@ -1,0 +1,26 @@
+{
+  "authorId": 87,
+  "name": "Brandon Sanderson",
+  "photoUrl": null,
+  "bio": null,
+  "books": [
+    {
+      "bookId": "9780765326355",
+      "title": "The Way of Kings",
+      "coverUrl": null,
+      "firstPublishYear": 2010,
+      "seriesName": "The Stormlight Archive",
+      "seriesPosition": 1,
+      "role": "AUTHOR"
+    },
+    {
+      "bookId": "9780765311788",
+      "title": "Elantris",
+      "coverUrl": null,
+      "firstPublishYear": 2005,
+      "seriesName": null,
+      "seriesPosition": null,
+      "role": "AUTHOR"
+    }
+  ]
+}

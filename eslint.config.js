@@ -45,6 +45,7 @@ export default defineConfig([
             { target: './src/lib', from: ['./src/features', './src/app'] },
             { target: './src/features', from: './src/app' },
             { target: './src/features/auth', from: './src/features', except: ['./auth'] },
+            { target: './src/features/author', from: './src/features', except: ['./author'] },
             { target: './src/features/book', from: './src/features', except: ['./book'] },
             { target: './src/features/catalog', from: './src/features', except: ['./catalog'] },
             { target: './src/features/comments', from: './src/features', except: ['./comments'] },

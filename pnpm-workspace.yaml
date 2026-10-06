@@ -4,6 +4,9 @@ auditConfig:
 
 onlyBuiltDependencies: []
 
+overrides:
+  source-map-js: '>=1.2.2'
+
 peerDependencyRules:
   allowedVersions:
     eslint-plugin-import>eslint: '9'

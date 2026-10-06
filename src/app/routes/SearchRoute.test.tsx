@@ -5,6 +5,8 @@ import { setRefreshHandler } from '@/lib/api/client'
 import { clearAccessToken } from '@/lib/api/token'
 import { stubSignedOut } from '@/testing/authHandlers'
 import { CurrentLocation } from '@/testing/CurrentLocation'
+import { emptyPage } from '@/testing/emptyPage'
+import authorHit from '@/testing/mocks/author-search-hit.json'
 import searchHit from '@/testing/mocks/search-hit.json'
 import { server } from '@/testing/msw-server'
 import { renderWithProviders, screen } from '@/testing/test-utils'
@@ -12,12 +14,14 @@ import { renderWithProviders, screen } from '@/testing/test-utils'
 import { SearchRoute } from './SearchRoute'
 
 const SEARCH_URL = 'http://localhost:8080/api/v1/search/books'
+const AUTHORS_URL = 'http://localhost:8080/api/v1/search/authors'
 const FULL_PAGE_PLUS_ONE = 16
 
 function stubSearch(hitCount: number) {
   const offsets: (string | null)[] = []
   stubSignedOut()
   server.use(
+    http.get(AUTHORS_URL, () => emptyPage()),
     http.get(SEARCH_URL, ({ request }) => {
       offsets.push(new URL(request.url).searchParams.get('offset'))
       const hits = Array.from({ length: hitCount }, (_, index) => ({
@@ -59,6 +63,38 @@ describe('SearchRoute', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Results for dune' }),
     ).toBeInTheDocument()
+  })
+
+  it('should show authors row above books', async () => {
+    stubSearch(1)
+    server.use(
+      http.get(AUTHORS_URL, () =>
+        HttpResponse.json({ data: [authorHit], meta: { total: 1, offset: 0, limit: 8 } }),
+      ),
+    )
+
+    renderSearch('/search?q=tolkien')
+
+    const authors = await screen.findByRole('region', { name: 'Authors' })
+    const book = await screen.findByRole('link', { name: /Dune/ })
+    expect(authors.compareDocumentPosition(book) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('should hide the authors row after the first page', async () => {
+    let authorRequests = 0
+    stubSearch(FULL_PAGE_PLUS_ONE)
+    server.use(
+      http.get(AUTHORS_URL, () => {
+        authorRequests += 1
+        return HttpResponse.json({ data: [authorHit], meta: { total: 1, offset: 0, limit: 8 } })
+      }),
+    )
+
+    renderSearch('/search?q=tolkien&page=2')
+
+    expect(await screen.findByText('Page 2')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Authors' })).not.toBeInTheDocument()
+    expect(authorRequests).toBe(0)
   })
 
   it('should prompt for a query when there is none', () => {

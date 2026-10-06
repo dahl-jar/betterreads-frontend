@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { AuthProvider } from '@/app/components/AuthProvider'
 import { clearAccessToken } from '@/lib/api/token'
+import { emptyPage } from '@/testing/emptyPage'
 import auth from '@/testing/mocks/auth.json'
 import book from '@/testing/mocks/book.json'
 import myShelfCounts from '@/testing/mocks/my-shelf-counts.json'
@@ -101,6 +102,7 @@ describe('router', () => {
 
   it('should show one search box on the search page', async () => {
     server.use(
+      http.get('http://localhost:8080/api/v1/search/authors', () => emptyPage()),
       http.get('http://localhost:8080/api/v1/search/books', () =>
         HttpResponse.json({ data: [], meta: { total: 0, offset: 0, limit: 15 } }),
       ),
@@ -123,6 +125,19 @@ describe('router', () => {
     renderAt('/books/missing')
 
     expect(await screen.findByRole('heading', { name: /book/i })).toBeInTheDocument()
+  })
+
+  it('should name a missing author', async () => {
+    server.use(
+      http.get(
+        'http://localhost:8080/api/v1/authors/5',
+        () => new HttpResponse(null, { status: 404 }),
+      ),
+    )
+
+    renderAt('/authors/5')
+
+    expect(await screen.findByRole('heading', { name: 'Author not found' })).toBeInTheDocument()
   })
 
   it('should announce the book detail skeleton while the book loads', async () => {
