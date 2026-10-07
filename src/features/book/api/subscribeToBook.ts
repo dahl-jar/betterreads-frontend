@@ -5,6 +5,7 @@ import { bookDetailSchema, type BookDetail } from './getBook'
 type SubscribeOptions = {
   onUpdate: (book: BookDetail) => void
   onError?: () => void
+  onDisconnect?: () => void
 }
 
 export function subscribeToBook(key: string, options: SubscribeOptions): () => void {
@@ -14,5 +15,6 @@ export function subscribeToBook(key: string, options: SubscribeOptions): () => v
     once: true,
     onEvent: options.onUpdate,
     onError: options.onError,
+    onDisconnect: options.onDisconnect,
   })
 }

@@ -32,14 +32,12 @@ describe('subscribeToSearchHits', () => {
 
   it('should skip a malformed hit and keep the stream open', () => {
     const onHit = vi.fn()
-    const onError = vi.fn()
-    subscribeToSearchHits('dune', { onHit, onError })
+    subscribeToSearchHits('dune', { onHit })
     const source = FakeEventSource.instances[0]!
 
     source.emit('search-hit', { bookId: 'OL2W' })
 
     expect(onHit).not.toHaveBeenCalled()
-    expect(onError).toHaveBeenCalledOnce()
     expect(source.closed).toBe(false)
   })
 })

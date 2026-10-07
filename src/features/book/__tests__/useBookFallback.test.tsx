@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { FakeEventSource } from '@/testing/fakeEventSource'
 import { holdResponse } from '@/testing/holdResponse'
 import { server } from '@/testing/msw-server'
 
@@ -13,36 +14,6 @@ const API_BASE_URL = 'http://localhost:8080/api/v1/books'
 const POLL_INTERVAL_MS = 5_000
 const POLL_ATTEMPT_LIMIT = 12
 const POLL_TIMER_LOOP_LIMIT = 100
-
-type BookEventListener = (event: MessageEvent<string>) => void
-
-class FakeEventSource {
-  static instances: FakeEventSource[] = []
-
-  readonly listeners = new Map<string, BookEventListener>()
-  onerror: ((event: Event) => void) | null = null
-  closed = false
-
-  constructor() {
-    FakeEventSource.instances.push(this)
-  }
-
-  addEventListener(type: string, listener: BookEventListener) {
-    this.listeners.set(type, listener)
-  }
-
-  emit(type: string, data: unknown) {
-    this.listeners.get(type)?.(new MessageEvent(type, { data: JSON.stringify(data) }))
-  }
-
-  fail() {
-    this.onerror?.(new Event('error'))
-  }
-
-  close() {
-    this.closed = true
-  }
-}
 
 function detail(key: string, complete: boolean, title = 'A Book') {
   return { ...sparseDetail, key, complete, title }
@@ -66,7 +37,6 @@ async function failStream() {
 }
 
 afterEach(() => {
-  FakeEventSource.instances = []
   vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
@@ -222,6 +192,19 @@ describe('useBook update fallback', () => {
 
     expect(requestCount).toBe(1 + POLL_ATTEMPT_LIMIT)
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('should keep reconnecting while it polls after a drop', async () => {
+    vi.stubGlobal('EventSource', FakeEventSource)
+    const requests = countIncompletePolls()
+
+    const { unmount } = renderHook(() => useBook('key-1'))
+    await failStream()
+    await act(async () => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS))
+
+    expect(FakeEventSource.instances).toHaveLength(2)
+    expect(requests.count).toBeGreaterThan(1)
+    unmount()
   })
 
   it('should not poll after a successful stream update', async () => {

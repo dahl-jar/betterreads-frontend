@@ -4,7 +4,6 @@ import { bookSearchDocumentSchema, type BookSearchDocument } from './searchBooks
 
 type SubscribeOptions = {
   onHit: (hit: BookSearchDocument) => void
-  onError?: () => void
 }
 
 export function subscribeToSearchHits(query: string, options: SubscribeOptions): () => void {
@@ -13,6 +12,5 @@ export function subscribeToSearchHits(query: string, options: SubscribeOptions):
     schema: bookSearchDocumentSchema,
     once: false,
     onEvent: options.onHit,
-    onError: options.onError,
   })
 }

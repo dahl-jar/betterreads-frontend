@@ -104,6 +104,7 @@ export function useBook(key: string): BookState {
     const unsubscribe = subscribeToBook(coldKey, {
       onUpdate: (book) => dispatch({ type: 'loaded', book }),
       onError: startPolling,
+      onDisconnect: startPolling,
     })
 
     return () => {

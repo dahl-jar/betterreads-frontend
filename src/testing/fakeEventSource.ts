@@ -20,6 +20,10 @@ export class FakeEventSource {
     this.listeners.get(type)?.({ data: JSON.stringify(data) })
   }
 
+  fail() {
+    this.onerror?.(new Event('error'))
+  }
+
   close() {
     this.closed = true
   }
