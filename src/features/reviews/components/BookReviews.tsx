@@ -239,7 +239,7 @@ function ReviewList({
       ) : null}
 
       {reviews.length === 0 && myReview === undefined ? (
-        <p className="text-sm text-fg-2">No reviews yet. Be the first to rate it.</p>
+        <p className="text-sm text-fg-2">No written reviews yet.</p>
       ) : null}
       {ownListed || reviews.length > 0 ? (
         <ul className="flex flex-col">

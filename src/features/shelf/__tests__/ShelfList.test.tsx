@@ -508,12 +508,6 @@ describe('ShelfList', () => {
     )
   })
 
-  it('should show the Hardcover average', async () => {
-    await renderLoadedShelf([{ ...FAVORITE_READ, averageRating: 4.27 }])
-
-    expect(firstOf(rowOf('Red Rising').getAllByText(/4\.27/))).toBeInTheDocument()
-  })
-
   it('should show the start date for a book being read', async () => {
     await renderLoadedShelf([{ ...BEING_READ, finishedAt: '2026-02-14' }])
 

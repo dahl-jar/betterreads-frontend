@@ -20,7 +20,8 @@ export const shelfEntrySchema = z.object({
   startedAt: z.string().nullish(),
   finishedAt: z.string().nullish(),
   notes: z.string().nullish(),
-  averageRating: z.number().nullish(),
+  communityAverage: z.number().nullish(),
+  communityCount: z.number(),
   myRating: z.number().nullish(),
 })
 

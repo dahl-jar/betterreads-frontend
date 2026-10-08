@@ -204,7 +204,7 @@ describe('BookReviews', () => {
 
     renderWithProviders(<BookReviews book={book} />)
 
-    expect(await screen.findByText('No reviews yet. Be the first to rate it.')).toBeInTheDocument()
+    expect(await screen.findByText('No written reviews yet.')).toBeInTheDocument()
   })
 
   it('should show an alert when the reviews cannot be loaded', async () => {

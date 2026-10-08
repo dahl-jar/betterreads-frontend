@@ -46,13 +46,13 @@ export function ShelfRow({ entry, query, onRate, onEntryChange }: ShelfItemProps
         <p className="mt-1 truncate text-sm text-fg-2">
           <HighlightedAuthors authors={entry.authors} query={query} />
         </p>
-        {entry.averageRating ? (
+        {entry.communityCount > 0 && entry.communityAverage ? (
           <p className="mt-2 flex items-center gap-1 text-xs text-fg-3">
             <StarIcon className="size-3 text-star" />
             <span className="font-semibold tabular-nums text-fg-2">
-              {formatRating(entry.averageRating)}
+              {formatRating(entry.communityAverage)}
             </span>
-            Hardcover
+            BetterReads
           </p>
         ) : null}
         <RatingError error={error} />

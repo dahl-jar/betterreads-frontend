@@ -39,6 +39,7 @@ describe('getShelf', () => {
               status: 'WANT_TO_READ',
               favorite: false,
               addedAt: '2026-01-01',
+              communityCount: 0,
             },
           ],
         }),
@@ -57,6 +58,15 @@ describe('getShelf', () => {
         HttpResponse.json({ data: [{ ...shelfEntry, status: 'NOT_A_STATUS' }] }),
       ),
     )
+
+    await expect(getShelf()).rejects.toThrow()
+  })
+
+  it('should reject an entry without a rating count', async () => {
+    const withoutCount = Object.fromEntries(
+      Object.entries(shelfEntry).filter(([field]) => field !== 'communityCount'),
+    )
+    server.use(http.get(SHELF_URL, () => HttpResponse.json({ data: [withoutCount] })))
 
     await expect(getShelf()).rejects.toThrow()
   })
