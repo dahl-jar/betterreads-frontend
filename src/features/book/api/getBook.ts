@@ -22,6 +22,7 @@ export const bookDetailSchema = z.object({
   contributors: z.array(contributorSchema),
   description: z.string().nullish(),
   coverUrl: z.string().nullish(),
+  appleBooksUrl: z.string().nullish(),
   firstPublishYear: z.number().int().nullish(),
   isbn: z.string().nullish(),
   pageCount: z.number().int().nullish(),

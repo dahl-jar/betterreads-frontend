@@ -1,4 +1,5 @@
 import { StaticPage } from '@/app/components/StaticPage'
+import { CONTACT_EMAIL } from '@/app/siteLinks'
 
 export function TermsRoute() {
   return (
@@ -17,6 +18,10 @@ export function TermsRoute() {
         {
           heading: 'Data sources',
           body: 'Book details come from Hardcover, Open Library, Google Books, Wikidata, Wikipedia, the Library of Congress and Apple Books. Ratings marked Hardcover come from Hardcover. Ratings marked BetterReads come from readers here.',
+        },
+        {
+          heading: 'Reporting images',
+          body: `Report an image that should not be here by emailing ${CONTACT_EMAIL} with the book's link. We remove reported images.`,
         },
         {
           heading: 'Changes',

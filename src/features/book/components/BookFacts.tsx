@@ -26,6 +26,9 @@ type BookFactsProps = {
 const LANGUAGE_NAMES = new Intl.DisplayNames(undefined, { type: 'language' })
 const SHOWN_GENRES = 8
 const TERM_CLASS = 'text-fg-2'
+const APPLE_BOOKS_PREFIX = 'https://books.apple.com/'
+const APPLE_BOOKS_ICON = '/apple-books.png'
+const APPLE_BOOKS_ICON_SIZE = 16
 
 const STAMP_TONE_CLASS = {
   read: 'text-read',
@@ -47,7 +50,33 @@ function factsOf(book: BookDetail) {
     { term: 'Published', value: book.firstPublishYear },
     { term: 'ISBN', value: book.isbn },
     { term: 'Language', value: book.language ? languageName(book.language) : undefined },
+    {
+      term: 'Ebook',
+      value: book.appleBooksUrl?.startsWith(APPLE_BOOKS_PREFIX) ? (
+        <AppleBooksLink href={book.appleBooksUrl} />
+      ) : undefined,
+    },
   ].filter((fact) => fact.value)
+}
+
+function AppleBooksLink({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 text-brand underline underline-offset-[3px]"
+    >
+      <img
+        src={APPLE_BOOKS_ICON}
+        alt=""
+        width={APPLE_BOOKS_ICON_SIZE}
+        height={APPLE_BOOKS_ICON_SIZE}
+        className="size-4 flex-none"
+      />
+      Apple Books
+    </a>
+  )
 }
 
 function StatusStamp({ stamp }: { stamp: Stamp }) {

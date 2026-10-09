@@ -30,6 +30,8 @@ const GENRES_WITH_REPEAT = [
 ]
 const GENRE_PAST_LIMIT = 'Spren'
 
+const APPLE_BOOKS_URL = 'https://books.apple.com/us/book/the-way-of-kings/id1'
+
 const READ_STAMP = { label: 'Read', date: 'Feb 14, 2026', tone: 'read' } as const
 const MALFORMED_LANGUAGE = 'en_US'
 
@@ -106,6 +108,30 @@ describe('BookFacts', () => {
     renderFacts(sparseBookDetail)
 
     expect(shownFacts()).toEqual([])
+  })
+
+  it('should link to Apple Books', () => {
+    const language = new Intl.DisplayNames(undefined, { type: 'language' }).of('en')
+
+    renderFacts({ ...ONE_SERIES, appleBooksUrl: APPLE_BOOKS_URL })
+
+    expect(shownFacts().slice(3, 5)).toEqual([
+      ['Language', language],
+      ['Ebook', 'Apple Books'],
+    ])
+    expect(screen.getByRole('link', { name: 'Apple Books' })).toHaveAttribute(
+      'href',
+      APPLE_BOOKS_URL,
+    )
+  })
+
+  it('should hide the row for a look-alike host', () => {
+    renderFacts({
+      ...bookDetail,
+      appleBooksUrl: 'https://books.apple.com.example.test/us/book/id1',
+    })
+
+    expect(screen.queryByText('Ebook')).toBeNull()
   })
 
   it('should show the stamp', () => {
