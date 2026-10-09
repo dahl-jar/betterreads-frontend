@@ -69,3 +69,6 @@ Disallow: /
 
 User-agent: Timpibot
 Disallow: /
+
+User-agent: Reflectionbot
+Disallow: /
