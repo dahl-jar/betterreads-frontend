@@ -6,6 +6,9 @@ RUN corepack enable && pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 
-FROM nginxinc/nginx-unprivileged:1.29.3-alpine@sha256:5aea7cc516b419e3526f47dd1531be31a56a046cfe44754d94f9383e13e2ee99
+FROM nginxinc/nginx-unprivileged:1.31.7-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
+USER root
+RUN apk upgrade --no-cache
+USER 101
 COPY --from=build /src/dist /usr/share/nginx/html
 COPY docker/dev.conf /etc/nginx/conf.d/default.conf
