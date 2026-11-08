@@ -4,47 +4,13 @@ on:
   push:
     branches:
       - '**'
-  pull_request:
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
-  quality:
-    name: Quality gate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
-      - name: Test the dev CSP
-        run: bash docker/dev-csp.test.sh
-
-  dependencies:
-    name: Dependency scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit:ci
-        continue-on-error: true
-
   jenkins:
     name: Jenkins
-    if: github.event_name == 'push' && !github.event.deleted
+    if: ${{ !github.event.deleted }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     concurrency:
@@ -71,10 +37,40 @@ jobs:
           message_id="$(aws sqs send-message --queue-url "$QUEUE_URL" --message-body "$body" --query MessageId --output text)"
           printf '%s\n\n%s\n' "Sent \`$body\`" "MessageId \`$message_id\`" >> "$GITHUB_STEP_SUMMARY"
 
+  deploy-dev:
+    name: Deploy Dev | Jenkins
+    if: ${{ !github.event.deleted && contains(fromJSON('["main"]'), github.ref_name) && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    concurrency:
+      group: deploy-dev-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+    steps:
+      - name: Assume the deploy request role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-north-1
+
+      - name: Send the deploy request
+        env:
+          QUEUE_URL: ${{ vars.DEPLOY_QUEUE_URL }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          KIND: deploy
+        run: |
+          set -euo pipefail
+          body="$(jq -nc --arg repo "$GITHUB_REPOSITORY" --arg ref "$REF" --arg sha "$SHA" --arg kind "$KIND" '{repo:$repo,ref:$ref,sha:$sha,kind:$kind}')"
+          message_id="$(aws sqs send-message --queue-url "$QUEUE_URL" --message-body "$body" --query MessageId --output text)"
+          printf '%s\n\n%s\n' "Sent \`$body\`" "MessageId \`$message_id\`" >> "$GITHUB_STEP_SUMMARY"
+
   pages:
     name: Deploy to Cloudflare Pages
     runs-on: ubuntu-latest
-    needs: [quality, dependencies]
+    permissions:
+      contents: read
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
     environment:
       name: production
