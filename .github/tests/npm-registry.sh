@@ -15,7 +15,7 @@ readonly SELF=".github/tests/npm-registry.sh"
 readonly JENKINS_FLAG="--jenkins"
 readonly JENKINS_CASES=(check_audit_uses_npmjs)
 readonly JENKINS_LINE="npm-registry.sh: Jenkins mode ran ${JENKINS_CASES[*]}"
-readonly UNSET_TOKEN="CODEARTIFACT_AUTH_TOKEN is unset: set it to a CodeArtifact authorization token"
+readonly UNSET_TOKEN="CODEARTIFACT_AUTH_TOKEN is unset or empty: set it to a CodeArtifact authorization token"
 readonly UNSET_TOKEN_LINE="npm-registry.sh: ${UNSET_TOKEN}"
 readonly FAKE_TOKEN="fake-token-4711"
 readonly FETCH_401="ERR_PNPM_FETCH_401"
@@ -94,9 +94,9 @@ check_repo_npmrc_has_no_token() {
 
 check_view_works_with_token() {
   local version
-  if ! version="$(view "${OLD_PACKAGE}@${OLD_VERSION}" version 2>&1)"; then
-    printf '%s\n' "${version}" >&2
-    fail "pnpm view ${OLD_PACKAGE}@${OLD_VERSION} failed with CODEARTIFACT_AUTH_TOKEN set, the token line is not read"
+  if ! version="$(view "${OLD_PACKAGE}@${OLD_VERSION}" version 2> "${scratch}/view.err")"; then
+    cat "${scratch}/view.err" >&2
+    fail "pnpm view ${OLD_PACKAGE}@${OLD_VERSION} failed with CODEARTIFACT_AUTH_TOKEN set: the token is invalid or expired, or the user-level token line is not read"
   fi
   if [[ "${version}" != "${OLD_VERSION}" ]]; then
     fail "pnpm view ${OLD_PACKAGE}@${OLD_VERSION} printed '${version}'"
@@ -223,4 +223,4 @@ check_unset_token_is_named
 check_unset_token_keeps_the_registry
 check_token_is_never_printed
 check_jenkins_mode_runs_only_the_audit
-printf '%s\n' "npm-registry.sh: the repo .npmrc has no token line, pnpm view works with a token, CodeArtifact refuses ${YOUNG_PACKAGE}@${refused_version} by age, keeps the npmjs publish time and installs ${OLD_PACKAGE}@${OLD_VERSION}, audit:ci reports from npmjs, an unset token is named, an install with an unset token gets a 401 from CodeArtifact, and the token is never printed"
+printf '%s\n' "npm-registry.sh: the repo .npmrc has no token line, pnpm view works with a token, CodeArtifact refuses ${YOUNG_PACKAGE}@${refused_version} by age, keeps the npmjs publish time and installs ${OLD_PACKAGE}@${OLD_VERSION}, audit:ci reports from npmjs, an unset token is named, an install with an unset token gets a 401 from CodeArtifact, and a ${JENKINS_FLAG} run does not print the token"
