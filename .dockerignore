@@ -1,7 +1,5 @@
-node_modules
-dist
-coverage
-.git
-.github
-.env
-.env.*
+*
+!dist
+!docker/nginx.conf
+!docker/dev.conf
+dist/_headers
