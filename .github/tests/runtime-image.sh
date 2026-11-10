@@ -5,7 +5,7 @@ readonly DOCKERFILE="docker/Dockerfile"
 readonly PLATFORM="linux/amd64"
 readonly BUNDLE_TEXT="bundle-stub"
 readonly PAGES_HEADERS="dist/_headers"
-readonly ADDED_FILES="etc/nginx/conf.d/default.conf etc/nginx/nginx.conf usr/share/nginx/html/index.html"
+readonly ADDED_FILES="etc/nginx/conf.d/default.conf etc/nginx/nginx.conf srv/app/index.html"
 readonly SHELL_OR_PACKAGE_MANAGER='^(usr/)?(local/)?s?bin/(sh|ash|bash|dash|busybox|apk|apt|apt-get|dpkg|rpm|yum|dnf|microdnf|pip|pip3|npm|pnpm|corepack)$'
 readonly PACKAGE_MANAGERS='pnpm|npm |npx|corepack'
 readonly TOKEN_MARKERS='codeartifact|_authToken'
@@ -17,6 +17,7 @@ readonly BACKEND_HOST="betterreads.betterreads-dev.svc.cluster.local"
 readonly BACKEND_TEXT="backend-stub"
 readonly APP_ROUTE="/books/42"
 readonly API_ROUTE="/api/books?q=dune"
+readonly STOCK_ERROR_PAGE="/50x.html"
 readonly SELF=".github/tests/runtime-image.sh"
 readonly JENKINS_FLAG="--jenkins"
 readonly JENKINS_CASES=(check_dockerfile_runs_no_package_manager)
@@ -190,6 +191,10 @@ check_image_serves_the_app() {
   expect_body "${APP_ROUTE}" "${BUNDLE_TEXT}"
 }
 
+check_stock_error_page_is_unreachable() {
+  expect_body "${STOCK_ERROR_PAGE}" "${BUNDLE_TEXT}"
+}
+
 check_image_proxies_the_api() {
   expect_body "${API_ROUTE}" "${BACKEND_TEXT} ${API_ROUTE}"
 }
@@ -232,7 +237,8 @@ check_image_has_no_shell_or_package_manager
 check_image_holds_no_token
 start_containers
 check_image_serves_the_app
+check_stock_error_page_is_unreachable
 check_image_proxies_the_api
 check_missing_bundle_fails_the_build
 check_jenkins_mode_runs_only_the_dockerfile_check
-printf '%s\n' "runtime-image.sh: the image runs no package manager, adds only the nginx config and the bundle without _headers, has no shell or package manager, holds no token, serves the app and proxies /api/ as user 101 on a read-only root, and fails without the bundle"
+printf '%s\n' "runtime-image.sh: the image runs no package manager, adds only the nginx config and the bundle without _headers, has no shell or package manager, holds no token, serves the app in place of the stock error page and proxies /api/ as user 101 on a read-only root, and fails without the bundle"

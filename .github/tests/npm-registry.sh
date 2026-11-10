@@ -18,11 +18,15 @@ readonly JENKINS_LINE="npm-registry.sh: Jenkins mode ran ${JENKINS_CASES[*]}"
 readonly UNSET_TOKEN="CODEARTIFACT_AUTH_TOKEN is unset: set it to a CodeArtifact authorization token"
 readonly UNSET_TOKEN_LINE="npm-registry.sh: ${UNSET_TOKEN}"
 readonly FAKE_TOKEN="fake-token-4711"
+readonly FETCH_401="ERR_PNPM_FETCH_401"
+readonly ENV_WARNING="Failed to replace env"
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/npm-registry.XXXXXX")"
 readonly root scratch
 readonly MAX_AGE_HOURS=$(( $(sed -n 's/^minimum-release-age=//p' "${root}/.npmrc") / MINUTES_PER_HOUR ))
+REGISTRY_URL="$(sed -n 's/^registry=//p' "${root}/.npmrc")"
+readonly REGISTRY_URL
 trap 'rm -rf "${scratch}"' EXIT
 
 fail() {
@@ -46,10 +50,15 @@ set_up() {
   if [[ -z "${CODEARTIFACT_AUTH_TOKEN:-}" ]]; then
     fail "${UNSET_TOKEN}"
   fi
-  mkdir -p "${scratch}/project"
-  cp "${root}/.npmrc" "${scratch}/project/.npmrc"
+  make_project "${scratch}/project"
+}
+
+make_project() {
+  local dir="$1"
+  mkdir -p "${dir}"
+  cp "${root}/.npmrc" "${dir}/.npmrc"
   node -e 'const pkg = require(process.argv[1]); process.stdout.write(JSON.stringify({name: "registry-check", private: true, packageManager: pkg.packageManager}))' \
-    "${root}/package.json" > "${scratch}/project/package.json"
+    "${root}/package.json" > "${dir}/package.json"
 }
 
 in_project() {
@@ -134,6 +143,22 @@ check_unset_token_is_named() {
   fi
 }
 
+check_unset_token_keeps_the_registry() {
+  local dir="${scratch}/no-token"
+  local output
+  make_project "${dir}"
+  if output="$(cd "${dir}" && env -u CODEARTIFACT_AUTH_TOKEN pnpm add --save-exact "${OLD_PACKAGE}@${OLD_VERSION}" --store-dir "${dir}/store" 2>&1)"; then
+    fail "pnpm add with CODEARTIFACT_AUTH_TOKEN unset passed, a registry other than CodeArtifact served it"
+  fi
+  if [[ "${output}" != *"${FETCH_401}"* || "${output}" != *"${REGISTRY_URL}"* || "${output}" == *"${ENV_WARNING}"* ]]; then
+    printf '%s\n' "${output}" >&2
+    fail "pnpm add with CODEARTIFACT_AUTH_TOKEN unset printed no ${FETCH_401} from ${REGISTRY_URL}, or dropped the .npmrc"
+  fi
+  if [[ -e "${dir}/node_modules/${OLD_PACKAGE}" ]]; then
+    fail "pnpm add with CODEARTIFACT_AUTH_TOKEN unset left node_modules/${OLD_PACKAGE}"
+  fi
+}
+
 check_token_is_never_printed() {
   local output
   output="$(CODEARTIFACT_AUTH_TOKEN="${FAKE_TOKEN}" "${BASH}" "${root}/${SELF}" "${JENKINS_FLAG}" 2>&1)" || true
@@ -166,6 +191,7 @@ check_old_version_keeps_its_publish_time
 check_mature_version_installs
 check_audit_uses_npmjs
 check_unset_token_is_named
+check_unset_token_keeps_the_registry
 check_token_is_never_printed
 check_jenkins_mode_runs_only_the_audit
-printf '%s\n' "npm-registry.sh: CodeArtifact refuses ${YOUNG_PACKAGE}@${refused_version} by age, keeps the npmjs publish time and installs ${OLD_PACKAGE}@${OLD_VERSION}, audit:ci reports from npmjs, an unset token is named, and the token is never printed"
+printf '%s\n' "npm-registry.sh: CodeArtifact refuses ${YOUNG_PACKAGE}@${refused_version} by age, keeps the npmjs publish time and installs ${OLD_PACKAGE}@${OLD_VERSION}, audit:ci reports from npmjs, an unset token is named, an install with an unset token gets a 401 from CodeArtifact, and the token is never printed"
