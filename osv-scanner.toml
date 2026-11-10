@@ -1,0 +1,3 @@
+[[IgnoredVulns]]
+id = "GHSA-mh99-v99m-4gvg"
+reason = "Dev-only Minimatch 3 chain. Its compatible Brace Expansion line has no patched release."

@@ -52,6 +52,24 @@ for key, value in step["env"].items():
 PY
 }
 
+job_names() {
+  uv run --quiet --no-project --with pyyaml==6.0.2 python3 -I - "${WORKFLOW}" <<'PY'
+import sys
+
+import yaml
+
+sys.stdout.write(" ".join(yaml.safe_load(open(sys.argv[1]))["jobs"]))
+PY
+}
+
+check_job_list() {
+  local actual
+  actual="$(job_names)"
+  if [[ "${actual}" != "${TEST_JOB} ${DEPLOY_JOB}" ]]; then
+    fail "${WORKFLOW} has the jobs '${actual}', expected '${TEST_JOB} ${DEPLOY_JOB}'"
+  fi
+}
+
 check_condition() {
   local job="$1"
   local expected="$2"
@@ -120,8 +138,9 @@ scratch="$(mktemp -d "${TMPDIR:-/tmp}/ci-workflow.XXXXXX")"
 mkdir "${scratch}/bin"
 trap clean_scratch EXIT
 write_fake_aws "${scratch}/bin"
+check_job_list
 check_condition "${TEST_JOB}" "${TEST_IF}"
 check_send_step "${TEST_JOB}" "${TEST_STEP}" "${TEST_BODY}"
 check_condition "${DEPLOY_JOB}" "${DEPLOY_IF}"
 check_send_step "${DEPLOY_JOB}" "${DEPLOY_STEP}" "${DEPLOY_BODY}"
-printf 'ci-workflow.sh: jobs %s and %s match their conditions, message bodies and step summaries\n' "${TEST_JOB}" "${DEPLOY_JOB}"
+printf 'ci-workflow.sh: jobs %s and %s are the only jobs and match their conditions, message bodies and step summaries\n' "${TEST_JOB}" "${DEPLOY_JOB}"

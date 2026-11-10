@@ -65,30 +65,3 @@ jobs:
           body="$(jq -nc --arg repo "$GITHUB_REPOSITORY" --arg ref "$REF" --arg sha "$SHA" --arg kind "$KIND" '{repo:$repo,ref:$ref,sha:$sha,kind:$kind}')"
           message_id="$(aws sqs send-message --queue-url "$QUEUE_URL" --message-body "$body" --query MessageId --output text)"
           printf '%s\n\n%s\n' "Sent \`$body\`" "MessageId \`$message_id\`" >> "$GITHUB_STEP_SUMMARY"
-
-  pages:
-    name: Deploy to Cloudflare Pages
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
-    environment:
-      name: production
-      url: https://betterreadsapp.com
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-        env:
-          VITE_API_BASE_URL: https://api.betterreadsapp.com
-      - name: Deploy
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=betterreads-frontend --branch=main
