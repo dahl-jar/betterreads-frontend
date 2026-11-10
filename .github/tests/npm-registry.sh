@@ -20,6 +20,9 @@ readonly UNSET_TOKEN_LINE="npm-registry.sh: ${UNSET_TOKEN}"
 readonly FAKE_TOKEN="fake-token-4711"
 readonly FETCH_401="ERR_PNPM_FETCH_401"
 readonly ENV_WARNING="Failed to replace env"
+readonly TOKEN_REFERENCE="\${CODEARTIFACT_AUTH_TOKEN}"
+readonly TOKEN_KEY="_authToken"
+readonly VARIABLE_START="\${"
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/npm-registry.XXXXXX")"
@@ -27,6 +30,7 @@ readonly root scratch
 readonly MAX_AGE_HOURS=$(( $(sed -n 's/^minimum-release-age=//p' "${root}/.npmrc") / MINUTES_PER_HOUR ))
 REGISTRY_URL="$(sed -n 's/^registry=//p' "${root}/.npmrc")"
 readonly REGISTRY_URL
+readonly USER_CONFIG="${scratch}/user.npmrc"
 trap 'rm -rf "${scratch}"' EXIT
 
 fail() {
@@ -44,6 +48,7 @@ done
 readonly jenkins
 
 set_up() {
+  printf '%s:%s=%s\n' "${REGISTRY_URL#https:}" "${TOKEN_KEY}" "${TOKEN_REFERENCE}" > "${USER_CONFIG}"
   if [[ "${jenkins}" == true ]]; then
     return
   fi
@@ -61,12 +66,16 @@ make_project() {
     "${root}/package.json" > "${dir}/package.json"
 }
 
+with_user_config() {
+  NPM_CONFIG_USERCONFIG="${USER_CONFIG}" "$@"
+}
+
 in_project() {
-  (cd "${scratch}/project" && pnpm "$@" --store-dir "${scratch}/store" 2>&1)
+  (cd "${scratch}/project" && with_user_config pnpm "$@" --store-dir "${scratch}/store" 2>&1)
 }
 
 view() {
-  (cd "${scratch}/project" && pnpm view "$@")
+  (cd "${scratch}/project" && with_user_config pnpm view "$@")
 }
 
 publish_time() {
@@ -75,6 +84,23 @@ publish_time() {
   shift 2
   view "${package}" time --json "$@" \
     | node -e 'let text = ""; process.stdin.on("data", (chunk) => { text += chunk; }).on("end", () => { process.stdout.write(JSON.parse(text)[process.argv[1]] ?? ""); })' "${version}"
+}
+
+check_repo_npmrc_has_no_token() {
+  if grep -qF -e "${VARIABLE_START}" -e "${TOKEN_KEY}" "${root}/.npmrc"; then
+    fail "the repo .npmrc has a ${TOKEN_KEY} line or a ${VARIABLE_START} variable, the token line belongs in the user-level npm config"
+  fi
+}
+
+check_view_works_with_token() {
+  local version
+  if ! version="$(view "${OLD_PACKAGE}@${OLD_VERSION}" version 2>&1)"; then
+    printf '%s\n' "${version}" >&2
+    fail "pnpm view ${OLD_PACKAGE}@${OLD_VERSION} failed with CODEARTIFACT_AUTH_TOKEN set, the token line is not read"
+  fi
+  if [[ "${version}" != "${OLD_VERSION}" ]]; then
+    fail "pnpm view ${OLD_PACKAGE}@${OLD_VERSION} printed '${version}'"
+  fi
 }
 
 check_young_version_is_refused() {
@@ -122,7 +148,7 @@ check_mature_version_installs() {
 
 check_audit_uses_npmjs() {
   local output status=0
-  output="$(cd "${root}" && pnpm audit:ci 2>&1)" || status=$?
+  output="$(cd "${root}" && with_user_config pnpm audit:ci 2>&1)" || status=$?
   if (( status != 0 && status != AUDIT_FINDINGS_EXIT )); then
     printf '%s\n' "${output}" >&2
     fail "pnpm audit:ci exited ${status}, expected 0 or ${AUDIT_FINDINGS_EXIT}"
@@ -145,12 +171,13 @@ check_unset_token_is_named() {
 
 check_unset_token_keeps_the_registry() {
   local dir="${scratch}/no-token"
-  local output
+  local output npmrc
   make_project "${dir}"
-  if output="$(cd "${dir}" && env -u CODEARTIFACT_AUTH_TOKEN pnpm add --save-exact "${OLD_PACKAGE}@${OLD_VERSION}" --store-dir "${dir}/store" 2>&1)"; then
+  npmrc="$(cd "${dir}" && pwd -P)/.npmrc"
+  if output="$(cd "${dir}" && with_user_config env -u CODEARTIFACT_AUTH_TOKEN pnpm add --save-exact "${OLD_PACKAGE}@${OLD_VERSION}" --store-dir "${dir}/store" 2>&1)"; then
     fail "pnpm add with CODEARTIFACT_AUTH_TOKEN unset passed, a registry other than CodeArtifact served it"
   fi
-  if [[ "${output}" != *"${FETCH_401}"* || "${output}" != *"${REGISTRY_URL}"* || "${output}" == *"${ENV_WARNING}"* ]]; then
+  if [[ "${output}" != *"${FETCH_401}"* || "${output}" != *"${REGISTRY_URL}"* || "${output}" == *"${npmrc}\". ${ENV_WARNING}"* ]]; then
     printf '%s\n' "${output}" >&2
     fail "pnpm add with CODEARTIFACT_AUTH_TOKEN unset printed no ${FETCH_401} from ${REGISTRY_URL}, or dropped the .npmrc"
   fi
@@ -178,6 +205,7 @@ check_jenkins_mode_runs_only_the_audit() {
   fi
 }
 
+check_repo_npmrc_has_no_token
 set_up
 if [[ "${jenkins}" == true ]]; then
   for case in "${JENKINS_CASES[@]}"; do
@@ -186,6 +214,7 @@ if [[ "${jenkins}" == true ]]; then
   printf '%s\n' "${JENKINS_LINE}"
   exit 0
 fi
+check_view_works_with_token
 check_young_version_is_refused
 check_old_version_keeps_its_publish_time
 check_mature_version_installs
@@ -194,4 +223,4 @@ check_unset_token_is_named
 check_unset_token_keeps_the_registry
 check_token_is_never_printed
 check_jenkins_mode_runs_only_the_audit
-printf '%s\n' "npm-registry.sh: CodeArtifact refuses ${YOUNG_PACKAGE}@${refused_version} by age, keeps the npmjs publish time and installs ${OLD_PACKAGE}@${OLD_VERSION}, audit:ci reports from npmjs, an unset token is named, an install with an unset token gets a 401 from CodeArtifact, and the token is never printed"
+printf '%s\n' "npm-registry.sh: the repo .npmrc has no token line, pnpm view works with a token, CodeArtifact refuses ${YOUNG_PACKAGE}@${refused_version} by age, keeps the npmjs publish time and installs ${OLD_PACKAGE}@${OLD_VERSION}, audit:ci reports from npmjs, an unset token is named, an install with an unset token gets a 401 from CodeArtifact, and the token is never printed"
